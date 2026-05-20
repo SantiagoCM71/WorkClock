@@ -17,7 +17,7 @@ let appData = { weekStr: '--', monthStr: '--', weekSecs: 0, monthSecs: 0 };
 let timerInterval = null;
 let activeStartTime = JSON.parse(localStorage.getItem('activeStartTime')) || null;
 let editingRowNumber = null;
-let isLoading = false;
+let isActionBusy = false;
 
 // --- DOM ---
 const $ = id => document.getElementById(id);
@@ -75,8 +75,12 @@ document.addEventListener('DOMContentLoaded', () => {
   setupGreetingAndDate();
   loadSettings();
   setupEventListeners();
-  checkActiveShiftState();
-  if (webAppUrl) refreshAll();
+  // No mostrar estado local hasta confirmar con backend
+  if (webAppUrl) {
+    refreshAll();
+  } else {
+    checkActiveShiftState();
+  }
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -141,8 +145,14 @@ function refreshAll() {
       setActionButtonState(true);
       elTimerStatus.textContent = 'Trabajando desde ' + state.startTime;
       elTimerStatus.style.color = 'var(--system-orange)';
-      if (activeStartTime) startTimerUI(activeStartTime);
+      // Si no hay timer local, crear uno basado en ahora (aproximado)
+      if (!activeStartTime) {
+        activeStartTime = Date.now();
+        localStorage.setItem('activeStartTime', JSON.stringify(activeStartTime));
+      }
+      startTimerUI(activeStartTime);
     } else {
+      // Backend dice NO activo — limpiar cualquier estado local fantasma
       if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
       activeStartTime = null;
       localStorage.removeItem('activeStartTime');
@@ -244,48 +254,62 @@ function formatHMS(ms) {
 
 // --- ACTION BUTTON (START/STOP) ---
 async function handleAction() {
+  // Bloquear doble-tap
+  if (isActionBusy) return;
+  isActionBusy = true;
+  elBtnAction.style.pointerEvents = 'none';
+  elBtnAction.style.opacity = '0.5';
+
   if (navigator.vibrate) navigator.vibrate(15);
 
-  if (!activeStartTime) {
-    activeStartTime = Date.now();
-    localStorage.setItem('activeStartTime', JSON.stringify(activeStartTime));
-    startTimerUI(activeStartTime);
-    setActionButtonState(true);
-    elTimerStatus.textContent = 'Registrando entrada...';
-    elTimerStatus.style.color = 'var(--system-orange)';
+  try {
+    if (!activeStartTime) {
+      // --- INICIAR TURNO ---
+      elTimerStatus.textContent = 'Registrando entrada...';
+      elTimerStatus.style.color = 'var(--system-orange)';
 
-    const r = await apiCall('registrarEntrada');
-    if (r && r.success) {
-      showToast('Turno iniciado');
-      updateHistory();
+      const r = await apiCall('registrarEntrada');
+      if (r && r.success) {
+        activeStartTime = Date.now();
+        localStorage.setItem('activeStartTime', JSON.stringify(activeStartTime));
+        startTimerUI(activeStartTime);
+        setActionButtonState(true);
+        showToast('Turno iniciado');
+        updateHistory();
+      } else {
+        elTimerStatus.textContent = 'Error al iniciar';
+        elTimerStatus.style.color = 'var(--text-secondary)';
+      }
     } else {
+      // --- TERMINAR TURNO ---
+      clearInterval(timerInterval);
+      timerInterval = null;
+      elTimerStatus.textContent = 'Finalizando turno...';
+      elTimerStatus.style.color = 'var(--text-secondary)';
+
+      const r = await apiCall('registrarSalida', { coords: null });
       activeStartTime = null;
       localStorage.removeItem('activeStartTime');
-      setActionButtonState(false);
-      elTimerDisplay.textContent = '00:00:00';
-      elTimerStatus.textContent = 'Turno inactivo';
-      elTimerStatus.style.color = 'var(--text-secondary)';
-    }
-  } else {
-    clearInterval(timerInterval);
-    timerInterval = null;
-    setActionButtonState(false);
-    elTimerStatus.textContent = 'Finalizando turno...';
-    elTimerStatus.style.color = 'var(--text-secondary)';
 
-    const r = await apiCall('registrarSalida', { coords: null });
-    activeStartTime = null;
-    localStorage.removeItem('activeStartTime');
-
-    if (r && r.success) {
-      showToast('Turno finalizado');
-      elTimerDisplay.textContent = '00:00:00';
-      elTimerStatus.textContent = 'Turno inactivo';
-      refreshAll();
-    } else {
-      elTimerDisplay.textContent = '00:00:00';
-      elTimerStatus.textContent = 'Error al finalizar';
+      if (r && r.success) {
+        showToast('Turno finalizado');
+        setActionButtonState(false);
+        elTimerDisplay.textContent = '00:00:00';
+        elTimerStatus.textContent = 'Turno inactivo';
+        refreshAll();
+      } else {
+        elTimerDisplay.textContent = '00:00:00';
+        elTimerStatus.textContent = 'Error al finalizar';
+        setActionButtonState(false);
+      }
     }
+  } finally {
+    // Desbloquear después de un delay mínimo para evitar rebotes
+    setTimeout(() => {
+      isActionBusy = false;
+      elBtnAction.style.pointerEvents = '';
+      elBtnAction.style.opacity = '';
+    }, 1500);
   }
 }
 
