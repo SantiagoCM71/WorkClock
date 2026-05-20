@@ -50,10 +50,18 @@ function doGet(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// --- NÓMINA CONSTANTES ---
+const NOM_SALARIO_BASE   = 1750905;
+const NOM_AUX_TRANSPORTE = 250000;
+const NOM_HORAS_LEGALES  = 176;
+const NOM_DED_SALUD      = 70000;
+const NOM_DED_PENSION    = 70000;
+
 // --- MENÚ DESKTOP EN SHEETS ---
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('⏱️ WorkClock Pro')
+    .addItem('📊 Actualizar Dashboard', 'generarDashboard')
     .addItem('📥 Exportar Mes (Copia)', 'exportarCierreDeMes')
     .addToUi();
 }
@@ -326,6 +334,338 @@ function iniciarNuevoMesApp() {
   // Limpiar la hoja principal (mantener fila de cabecera si la hay)
   sheet.getRange(2, 1, lastRow - 1, 7).clearContent();
   return { success: true, archivoCreado: nombreHoja };
+}
+
+// =====================================================================
+// --- DASHBOARD GENERATOR ---
+// =====================================================================
+function generarDashboard() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const src = getSheet();
+  const tz = Session.getScriptTimeZone();
+  const DASH_NAME = 'Dashboard';
+
+  // --- Crear o limpiar hoja Dashboard ---
+  let d = ss.getSheetByName(DASH_NAME);
+  if (d) { d.clear(); } else { d = ss.insertSheet(DASH_NAME, 0); }
+
+  // Eliminar charts existentes
+  d.getCharts().forEach(c => d.removeChart(c));
+
+  // --- Leer datos del mes actual ---
+  const allData = src.getDataRange().getValues();
+  const hoy = new Date();
+  const mesActual = hoy.getMonth();
+  const anioActual = hoy.getFullYear();
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  let registros = [];
+  let totalSegs = 0;
+  let enSitio = 0;
+  let fuera = 0;
+  let sinGPS = 0;
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    if (!row[0]) continue;
+    const rd = row[0] instanceof Date ? row[0] : new Date(row[0]);
+    if (rd.getMonth() !== mesActual || rd.getFullYear() !== anioActual) continue;
+
+    let segs = 0;
+    if (row[4] !== '' && row[4] !== null) {
+      if (row[4] instanceof Date) segs = row[4].getHours() * 3600 + row[4].getMinutes() * 60 + row[4].getSeconds();
+      else if (typeof row[4] === 'number') segs = Math.round(row[4] * 86400);
+    }
+    totalSegs += segs;
+
+    const rango = String(row[5] || '');
+    if (rango.includes('En sitio')) enSitio++;
+    else if (rango.includes('Fuera')) fuera++;
+    else sinGPS++;
+
+    registros.push({
+      fecha: rd,
+      dia: row[1] || '',
+      entrada: row[2],
+      salida: row[3],
+      segs: segs,
+      horas: row[4],
+      rango: rango,
+      ubicacion: row[6] || ''
+    });
+  }
+
+  const totalRegistros = registros.length;
+  const horasDecimal = totalSegs / 3600;
+  const horasStr = Math.floor(totalSegs / 3600) + ':' + String(Math.floor((totalSegs % 3600) / 60)).padStart(2, '0') + ':' + String(totalSegs % 60).padStart(2, '0');
+  const cumplimiento = NOM_HORAS_LEGALES > 0 ? (horasDecimal / NOM_HORAS_LEGALES) * 100 : 0;
+  const propTrabajada = horasDecimal / NOM_HORAS_LEGALES;
+  const salarioCausado = Math.round(NOM_SALARIO_BASE * propTrabajada);
+  const auxCausado = Math.round(NOM_AUX_TRANSPORTE * propTrabajada);
+  const netoPagar = salarioCausado + auxCausado - NOM_DED_SALUD - NOM_DED_PENSION;
+  const totalMes = salarioCausado + auxCausado;
+
+  // --- COLORES ---
+  const VERDE_OSCURO = '#1b5e20';
+  const VERDE        = '#2e7d32';
+  const VERDE_CLARO  = '#4caf50';
+  const VERDE_FONDO  = '#e8f5e9';
+  const BLANCO       = '#ffffff';
+  const GRIS_CLARO   = '#f5f5f5';
+  const GRIS_BORDE   = '#e0e0e0';
+  const TEXTO_OSCURO = '#212121';
+  const TEXTO_SEC    = '#616161';
+  const ROJO         = '#c62828';
+  const NARANJA      = '#e65100';
+
+  // --- CONFIGURAR HOJA ---
+  d.setColumnWidth(1, 30);   // margen
+  d.setColumnWidth(2, 180);
+  d.setColumnWidth(3, 140);
+  d.setColumnWidth(4, 140);
+  d.setColumnWidth(5, 140);
+  d.setColumnWidth(6, 140);
+  d.setColumnWidth(7, 140);
+  d.setColumnWidth(8, 30);   // margen
+  d.setColumnWidth(9, 180);
+  d.setColumnWidth(10, 160);
+  d.setTabColor(VERDE);
+
+  // Fondo general blanco
+  d.getRange(1, 1, 60, 12).setBackground(BLANCO);
+
+  // ==================== HEADER ====================
+  d.setRowHeight(1, 10);
+  d.setRowHeight(2, 45);
+  d.getRange('B2:G2').merge()
+    .setValue('📊 WorkClock Pro — Dashboard')
+    .setFontSize(18).setFontWeight('bold').setFontColor(VERDE_OSCURO)
+    .setVerticalAlignment('middle');
+
+  d.setRowHeight(3, 25);
+  d.getRange('B3:G3').merge()
+    .setValue('Control de Tiempo, Nómina y Asistencia  |  ' + meses[mesActual] + ' ' + anioActual)
+    .setFontSize(10).setFontColor(TEXTO_SEC).setVerticalAlignment('middle');
+
+  // Línea separadora
+  d.setRowHeight(4, 4);
+  d.getRange('B4:G4').merge().setBackground(VERDE);
+
+  // ==================== KPI CARDS (Row 6-8) ====================
+  d.setRowHeight(5, 15);
+  d.setRowHeight(6, 22);
+  d.setRowHeight(7, 35);
+  d.setRowHeight(8, 20);
+
+  const kpis = [
+    { col: 2, label: '⏱️ HORAS DEL MES', value: horasStr, sub: NOM_HORAS_LEGALES + ' h legales' },
+    { col: 3, label: '📅 REGISTROS', value: totalRegistros, sub: 'Jornadas registradas' },
+    { col: 4, label: '📈 CUMPLIMIENTO', value: cumplimiento.toFixed(1) + '%', sub: 'vs. objetivo mensual' },
+    { col: 5, label: '💰 SALARIO CAUSADO', value: '$' + salarioCausado.toLocaleString('es-CO'), sub: 'Base proporcional' },
+    { col: 6, label: '💵 NETO A PAGAR', value: '$' + Math.max(0, netoPagar).toLocaleString('es-CO'), sub: 'Después de deducciones' },
+  ];
+
+  kpis.forEach(k => {
+    const isNeto = k.col === 6;
+    const cardBg = isNeto ? VERDE : VERDE_FONDO;
+    const textColor = isNeto ? BLANCO : VERDE_OSCURO;
+    const subColor = isNeto ? '#c8e6c9' : TEXTO_SEC;
+
+    d.getRange(6, k.col).setValue(k.label)
+      .setFontSize(8).setFontWeight('bold').setFontColor(subColor).setBackground(cardBg)
+      .setHorizontalAlignment('center').setVerticalAlignment('middle');
+    d.getRange(7, k.col).setValue(k.value)
+      .setFontSize(18).setFontWeight('bold').setFontColor(textColor).setBackground(cardBg)
+      .setHorizontalAlignment('center').setVerticalAlignment('middle');
+    d.getRange(8, k.col).setValue(k.sub)
+      .setFontSize(8).setFontColor(subColor).setBackground(cardBg)
+      .setHorizontalAlignment('center').setVerticalAlignment('middle');
+
+    // Bordes de la card
+    d.getRange(6, k.col, 3, 1).setBorder(true, true, true, true, false, false, GRIS_BORDE, SpreadsheetApp.BorderStyle.SOLID);
+  });
+
+  // ==================== BARRA DE PROGRESO (Row 10) ====================
+  d.setRowHeight(9, 15);
+  d.setRowHeight(10, 30);
+  d.getRange('B10').setValue('Progreso mensual:').setFontSize(9).setFontWeight('bold').setFontColor(TEXTO_OSCURO);
+  d.getRange('C10:F10').merge();
+  const barText = '█'.repeat(Math.min(Math.round(cumplimiento / 5), 20)) + '░'.repeat(Math.max(20 - Math.round(cumplimiento / 5), 0));
+  d.getRange('C10').setValue(barText + '  ' + cumplimiento.toFixed(1) + '% de ' + NOM_HORAS_LEGALES + 'h')
+    .setFontFamily('Courier New').setFontSize(11).setFontColor(cumplimiento >= 95 ? VERDE : cumplimiento >= 50 ? NARANJA : ROJO)
+    .setVerticalAlignment('middle');
+
+  // ==================== DISTRIBUCIÓN (Row 12) ====================
+  d.setRowHeight(11, 15);
+  d.setRowHeight(12, 22);
+  d.getRange('B12:D12').merge()
+    .setValue('📍 Distribución de Asistencia')
+    .setFontSize(12).setFontWeight('bold').setFontColor(VERDE_OSCURO);
+
+  d.getRange('F12:G12').merge()
+    .setValue('💼 Liquidación del Mes')
+    .setFontSize(12).setFontWeight('bold').setFontColor(VERDE_OSCURO);
+
+  // Tabla distribución
+  d.setRowHeight(13, 25);
+  d.setRowHeight(14, 25);
+  d.setRowHeight(15, 25);
+  d.setRowHeight(16, 25);
+
+  d.getRange('B13').setValue('Estado').setFontWeight('bold').setFontSize(9).setBackground(VERDE).setFontColor(BLANCO);
+  d.getRange('C13').setValue('Cantidad').setFontWeight('bold').setFontSize(9).setBackground(VERDE).setFontColor(BLANCO).setHorizontalAlignment('center');
+  d.getRange('D13').setValue('Porcentaje').setFontWeight('bold').setFontSize(9).setBackground(VERDE).setFontColor(BLANCO).setHorizontalAlignment('center');
+
+  const distData = [
+    ['✅ En sitio', enSitio, totalRegistros > 0 ? (enSitio / totalRegistros * 100).toFixed(1) + '%' : '0%'],
+    ['🚩 Fuera', fuera, totalRegistros > 0 ? (fuera / totalRegistros * 100).toFixed(1) + '%' : '0%'],
+    ['📱 Sin GPS / Manual', sinGPS, totalRegistros > 0 ? (sinGPS / totalRegistros * 100).toFixed(1) + '%' : '0%'],
+  ];
+  distData.forEach((r, idx) => {
+    const rowN = 14 + idx;
+    const bg = idx % 2 === 0 ? GRIS_CLARO : BLANCO;
+    d.getRange(rowN, 2).setValue(r[0]).setFontSize(9).setBackground(bg);
+    d.getRange(rowN, 3).setValue(r[1]).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
+    d.getRange(rowN, 4).setValue(r[2]).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
+  });
+  d.getRange(13, 2, 4, 3).setBorder(true, true, true, true, true, true, GRIS_BORDE, SpreadsheetApp.BorderStyle.SOLID);
+
+  // ==================== LIQUIDACIÓN (Rows 13-19) ====================
+  const liqData = [
+    ['Concepto', 'Valor'],
+    ['Salario Causado', '$' + salarioCausado.toLocaleString('es-CO')],
+    ['Auxilio Transporte', '$' + auxCausado.toLocaleString('es-CO')],
+    ['(-) Salud', '-$' + NOM_DED_SALUD.toLocaleString('es-CO')],
+    ['(-) Pensión', '-$' + NOM_DED_PENSION.toLocaleString('es-CO')],
+    ['Total Mes', '$' + totalMes.toLocaleString('es-CO')],
+    ['NETO A PAGAR', '$' + Math.max(0, netoPagar).toLocaleString('es-CO')],
+  ];
+
+  liqData.forEach((r, idx) => {
+    const rowN = 13 + idx;
+    if (idx === 0) {
+      d.getRange(rowN, 6).setValue(r[0]).setFontWeight('bold').setFontSize(9).setBackground(VERDE).setFontColor(BLANCO);
+      d.getRange(rowN, 7).setValue(r[1]).setFontWeight('bold').setFontSize(9).setBackground(VERDE).setFontColor(BLANCO).setHorizontalAlignment('right');
+    } else if (idx === liqData.length - 1) {
+      d.getRange(rowN, 6).setValue(r[0]).setFontWeight('bold').setFontSize(11).setBackground(VERDE_OSCURO).setFontColor(BLANCO);
+      d.getRange(rowN, 7).setValue(r[1]).setFontWeight('bold').setFontSize(11).setBackground(VERDE_OSCURO).setFontColor(BLANCO).setHorizontalAlignment('right');
+    } else {
+      const bg = idx % 2 === 0 ? GRIS_CLARO : BLANCO;
+      const isDeduction = r[0].startsWith('(-)');
+      d.getRange(rowN, 6).setValue(r[0]).setFontSize(9).setBackground(bg).setFontColor(isDeduction ? ROJO : TEXTO_OSCURO);
+      d.getRange(rowN, 7).setValue(r[1]).setFontSize(9).setBackground(bg).setHorizontalAlignment('right').setFontColor(isDeduction ? ROJO : TEXTO_OSCURO);
+    }
+  });
+  d.getRange(13, 6, liqData.length, 2).setBorder(true, true, true, true, true, true, GRIS_BORDE, SpreadsheetApp.BorderStyle.SOLID);
+
+  // ==================== INFO PERIODO ====================
+  const rowPeriodo = 13 + liqData.length + 1;
+  d.getRange(rowPeriodo, 6, 1, 2).merge()
+    .setValue('ℹ️ Período: 01/' + String(mesActual + 1).padStart(2, '0') + '/' + anioActual + ' - ' +
+             new Date(anioActual, mesActual + 1, 0).getDate() + '/' + String(mesActual + 1).padStart(2, '0') + '/' + anioActual)
+    .setFontSize(8).setFontColor(TEXTO_SEC).setBackground(VERDE_FONDO);
+  const rowObj = rowPeriodo + 1;
+  d.getRange(rowObj, 6, 1, 2).merge()
+    .setValue('🎯 Horario objetivo: ' + NOM_HORAS_LEGALES + ':00:00 h')
+    .setFontSize(8).setFontColor(TEXTO_SEC).setBackground(VERDE_FONDO);
+
+  // ==================== TABLA REGISTROS RECIENTES ====================
+  const tblStart = 18;
+  d.setRowHeight(tblStart - 1, 15);
+  d.getRange(tblStart, 2, 1, 6).merge()
+    .setValue('📋 Registros Recientes')
+    .setFontSize(12).setFontWeight('bold').setFontColor(VERDE_OSCURO);
+
+  const tblHeaderRow = tblStart + 1;
+  const headers = ['Fecha', 'Día', 'Entrada', 'Salida', 'Horas', 'Rango'];
+  headers.forEach((h, idx) => {
+    d.getRange(tblHeaderRow, 2 + idx).setValue(h)
+      .setFontWeight('bold').setFontSize(9).setFontColor(BLANCO)
+      .setBackground(VERDE).setHorizontalAlignment('center');
+  });
+
+  // Datos (últimos 15 registros, más recientes primero)
+  const recientes = registros.slice(-15).reverse();
+  recientes.forEach((r, idx) => {
+    const rowN = tblHeaderRow + 1 + idx;
+    const bg = idx % 2 === 0 ? BLANCO : GRIS_CLARO;
+    const fechaStr = r.fecha instanceof Date ? Utilities.formatDate(r.fecha, tz, 'dd/MM/yyyy') : r.fecha;
+    const entStr = r.entrada instanceof Date ? Utilities.formatDate(r.entrada, tz, 'h:mm a') : (r.entrada || '--');
+    const salStr = r.salida instanceof Date ? Utilities.formatDate(r.salida, tz, 'h:mm a') : (r.salida || '--');
+
+    let horasStr2 = '--';
+    if (r.segs > 0) {
+      const hh = Math.floor(r.segs / 3600);
+      const mm = Math.floor((r.segs % 3600) / 60);
+      const ss2 = r.segs % 60;
+      horasStr2 = hh + ':' + String(mm).padStart(2, '0') + ':' + String(ss2).padStart(2, '0');
+    }
+
+    d.getRange(rowN, 2).setValue(fechaStr).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
+    d.getRange(rowN, 3).setValue(r.dia).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
+    d.getRange(rowN, 4).setValue(entStr).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
+    d.getRange(rowN, 5).setValue(salStr).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
+    d.getRange(rowN, 6).setValue(horasStr2).setFontSize(9).setBackground(bg).setHorizontalAlignment('center').setFontWeight('bold');
+
+    // Rango con color
+    const rangoCell = d.getRange(rowN, 7);
+    rangoCell.setValue(r.rango).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
+    if (r.rango.includes('En sitio')) rangoCell.setFontColor(VERDE);
+    else if (r.rango.includes('Fuera')) rangoCell.setFontColor(ROJO);
+    else rangoCell.setFontColor(TEXTO_SEC);
+  });
+
+  // Bordes tabla
+  if (recientes.length > 0) {
+    d.getRange(tblHeaderRow, 2, recientes.length + 1, 6)
+      .setBorder(true, true, true, true, true, true, GRIS_BORDE, SpreadsheetApp.BorderStyle.SOLID);
+  }
+
+  // ==================== CHART: Horas por día ====================
+  const chartStart = tblHeaderRow + recientes.length + 3;
+  d.getRange(chartStart, 2, 1, 4).merge()
+    .setValue('📈 Horas Trabajadas por Día')
+    .setFontSize(12).setFontWeight('bold').setFontColor(VERDE_OSCURO);
+
+  // Escribir datos para el chart en un rango oculto
+  const chartDataStart = chartStart + 1;
+  const chartRegistros = registros.slice(-20);
+  chartRegistros.forEach((r, idx) => {
+    const rowN = chartDataStart + idx;
+    const fechaStr = r.fecha instanceof Date ? Utilities.formatDate(r.fecha, tz, 'dd/MM') : '';
+    d.getRange(rowN, 2).setValue(fechaStr).setFontSize(8).setFontColor(TEXTO_SEC);
+    d.getRange(rowN, 3).setValue(r.segs / 3600).setNumberFormat('0.00').setFontSize(8).setFontColor(TEXTO_SEC);
+  });
+
+  if (chartRegistros.length > 0) {
+    const chartRange = d.getRange(chartDataStart, 2, chartRegistros.length, 2);
+    const chart = d.newChart()
+      .setChartType(Charts.ChartType.COLUMN)
+      .addRange(chartRange)
+      .setPosition(chartDataStart, 4, 0, 0)
+      .setOption('title', '')
+      .setOption('legend', { position: 'none' })
+      .setOption('colors', [VERDE_CLARO])
+      .setOption('hAxis', { textStyle: { fontSize: 8 } })
+      .setOption('vAxis', { title: 'Horas', minValue: 0 })
+      .setOption('bar', { groupWidth: '60%' })
+      .setOption('width', 520)
+      .setOption('height', 280)
+      .build();
+    d.insertChart(chart);
+  }
+
+  // ==================== FOOTER ====================
+  const footerRow = chartDataStart + chartRegistros.length + 2;
+  d.getRange(footerRow, 2, 1, 6).merge()
+    .setValue('Generado automáticamente por WorkClock Pro — ' + Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm'))
+    .setFontSize(8).setFontColor(TEXTO_SEC).setHorizontalAlignment('center');
+
+  // Mover Dashboard al inicio
+  ss.setActiveSheet(d);
+  ss.moveActiveSheet(1);
+
+  SpreadsheetApp.getUi().alert('✅ Dashboard actualizado para ' + meses[mesActual] + ' ' + anioActual);
 }
 
 // --- EXPORTAR MES DESDE MENÚ DESKTOP ---
