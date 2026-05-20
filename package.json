@@ -1,0 +1,14 @@
+{
+  "name": "workclock-pro",
+  "version": "1.0.0",
+  "description": "Aplicación de seguimiento y control de horas de trabajo premium estilo iOS con sincronización en Google Sheets",
+  "main": "app.js",
+  "scripts": {
+    "check": "node scripts/check-gas.js",
+    "deploy:auto": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-auto.ps1",
+    "deploy:auto:no-clean": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-auto.ps1 -NoClean"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2"
+  }
+}

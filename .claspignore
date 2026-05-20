@@ -1,0 +1,23 @@
+# Ignorar carpetas enteras de Node y Git
+node_modules/**
+.git/**
+scripts/**
+version_vieja/**
+assets/**
+
+# Ignorar archivos locales del Frontend
+index.html
+index.css
+app.js
+sw.js
+manifest.json
+
+# Ignorar archivos de configuración del proyecto local
+package.json
+package-lock.json
+resumen_shifttracker.txt
+.claspignore
+README.md
+implementation_plan.md
+task.md
+walkthrough.md

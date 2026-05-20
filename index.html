@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>WorkClock Pro</title>
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WorkClock">
+  <meta name="theme-color" content="#0A0A0C">
+
+  <link rel="apple-touch-icon" href="assets/icon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=SF+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <span class="greeting" id="headerGreeting">¡Hola!</span>
+        <h1 class="header-title">WorkClock Pro</h1>
+      </div>
+      <button class="icon-button" id="btnSettings" aria-label="Ajustes">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+      <div class="date-badge" id="currentDateBadge">Martes, 20 de Mayo</div>
+
+      <!-- Timer -->
+      <div class="timer-section">
+        <div class="timer-display" id="timerDisplay">00:00:00</div>
+        <div class="timer-status" id="timerStatusLabel">Turno inactivo</div>
+        <div class="action-btn-wrapper">
+          <button class="action-btn state-start" id="btnAction">
+            <span class="btn-ripple"></span>
+            <span class="btn-ripple-two"></span>
+            <span class="btn-label" id="btnActionLabel">Iniciar Turno</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats (tappable for nómina toggle) -->
+      <section class="stats-grid" id="statsGrid">
+        <div class="stat-card" id="cardWeek">
+          <span class="stat-label" id="lblWeek">Esta Semana</span>
+          <span class="stat-value" id="valWeek">--</span>
+        </div>
+        <div class="stat-card" id="cardMonth">
+          <span class="stat-label" id="lblMonth">Este Mes</span>
+          <span class="stat-value" id="valMonth">--</span>
+        </div>
+      </section>
+
+      <!-- Action Row -->
+      <section class="action-row">
+        <button class="action-row-btn btn-add-shift" id="btnAddManual">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Agregar Jornada
+        </button>
+        <button class="action-row-btn btn-new-month" id="btnNuevoMes">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Nuevo Mes
+        </button>
+      </section>
+
+      <!-- History -->
+      <section class="history-section">
+        <div class="section-header">
+          <h3 class="section-title">Actividad Reciente</h3>
+          <button class="btn-delete-last" id="btnEliminarUltimo">Eliminar Último</button>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="empty-state" id="emptyState">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <p>No hay turnos registrados</p>
+            <span>Configura la URL de API en Ajustes para empezar.</span>
+          </div>
+        </div>
+        <p class="history-hint" id="historyHint" style="display:none;">Toca cualquier fila para editarla</p>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- EDIT MODAL -->
+  <div class="modal-overlay" id="editModal">
+    <div class="ios-modal">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <h2>Editar Turno</h2>
+        <p id="editDate" class="modal-subtitle"></p>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <label for="editIn">Entrada</label>
+          <input type="time" id="editIn">
+        </div>
+        <div class="input-group">
+          <label for="editOut">Salida</label>
+          <input type="time" id="editOut">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="secondary-button" id="btnCancelEdit">Cancelar</button>
+        <button class="primary-button" id="btnSaveEdit">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANUAL SHIFT MODAL -->
+  <div class="modal-overlay" id="manualModal">
+    <div class="ios-modal">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <h2>Agregar Jornada</h2>
+        <p class="modal-subtitle">Registro manual de horas trabajadas</p>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <label for="manDate">Fecha</label>
+          <input type="date" id="manDate">
+        </div>
+        <div class="input-group">
+          <label for="manIn">Entrada</label>
+          <input type="time" id="manIn">
+        </div>
+        <div class="input-group">
+          <label for="manOut">Salida</label>
+          <input type="time" id="manOut">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="secondary-button" id="btnCancelManual">Cancelar</button>
+        <button class="primary-button" id="btnSaveManual">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="ios-modal settings-modal">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <div class="modal-header-top">
+          <h2>Configuración</h2>
+          <button class="text-button" id="btnCloseSettings">Listo</button>
+        </div>
+        <p>Conecta la app con tu Google Sheet.</p>
+      </div>
+      <div class="modal-body">
+
+        <div class="settings-card">
+          <div class="settings-card-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <h3>Google Sheets API</h3>
+          </div>
+          <div class="input-group">
+            <label for="inputSheetUrl">URL de Apps Script (/exec):</label>
+            <input type="url" id="inputSheetUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="settings-actions">
+            <button class="secondary-button compact" id="btnTestConnection">Probar</button>
+            <span class="connection-status badge-disconnected" id="connectionStatus">No Configurado</span>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>Gestión de Datos</h3>
+          <p class="settings-card-desc">Datos en Google Sheets.</p>
+          <div class="data-buttons-grid">
+            <button class="outline-button" id="btnExportCSV">Exportar CSV</button>
+            <button class="danger-button" id="btnResetLocal">Limpiar Cache</button>
+          </div>
+        </div>
+
+        <div class="app-version-info">
+          <p><strong>WorkClock Pro v2.0.0</strong></p>
+          <p>PWA iOS + Google Sheets Backend</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="ios-toast" id="toastNotification">
+    <div class="toast-content">
+      <span class="toast-message" id="toastMessage"></span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

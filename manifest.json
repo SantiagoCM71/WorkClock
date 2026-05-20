@@ -1,0 +1,25 @@
+{
+  "name": "WorkClock Pro",
+  "short_name": "WorkClock",
+  "description": "Aplicación de seguimiento y control de horas de trabajo conectada con Google Sheets",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B0B0E",
+  "theme_color": "#0B0B0E",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "assets/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

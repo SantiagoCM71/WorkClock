@@ -1,0 +1,45 @@
+====================================================================
+📱 SHIFTTRACKER — RESUMEN GENERAL DE LA APLICACIÓN
+====================================================================
+
+Diseñamos y construimos una solución a medida llamada ShiftTracker, una aplicación móvil premium diseñada con el estilo visual de iOS para registrar y gestionar tus horas de trabajo de forma profesional, segura y sin depender de servidores de pago.
+
+--------------------------------------------------------------------
+📂 UBICACIÓN DEL PROYECTO EN TU COMPUTADORA:
+C:\Users\santi\.gemini\antigravity\scratch\control-horas-ios\
+--------------------------------------------------------------------
+
+✨ 1. ¿CÓMO FUNCIONA LA APLICACIÓN? (EXPERIENCIA DE USUARIO)
+--------------------------------------------------------------------
+* Interfaz Premium (iOS Style): Diseñada desde cero con una estética moderna en modo oscuro, efectos de desenfoque de fondo (glassmorphism), tipografía limpia y micro-animaciones (como el latido luminoso que indica que tu turno está activo).
+* Control del Tiempo en Vivo: Inicias tu turno y un cronómetro dinámico calcula tus horas en tiempo real. Si necesitas tomar un descanso, puedes pausarlo y reanudarlo fácilmente con un toque.
+* Seguridad contra Cierres Accidentales: Si tu teléfono o computadora se apaga, si cierras la pestaña o si se agota la batería, NO pierdes nada. Cuando vuelves a abrir la app, esta calcula de inmediato el tiempo transcurrido y continúa el cronómetro de forma exacta.
+* Finalización con Notas: Al terminar tu turno, se desliza un panel elegante donde puedes ingresar notas detalladas sobre el trabajo que hiciste ese día.
+* Historial Local y Exportación: La aplicación mantiene una bitácora local de todos tus turnos registrados y te permite exportar un reporte en formato CSV compatible con Excel con un solo botón.
+
+🛠️ 2. ARQUITECTURA TÉCNICA (¿CÓMO ESTÁ HECHA POR DENTRO?)
+--------------------------------------------------------------------
+La app se diseñó bajo el principio Offline-First (funciona sin conexión a internet) utilizando:
+
+1. Frontend (HTML5, CSS3, Javascript): Una interfaz responsiva adaptada a las pantallas de teléfonos móviles (con márgenes de seguridad para la muesca y barra inferior de los iPhones).
+2. PWA (Progressive Web App): A través de un 'manifest.json' y un Service Worker ('sw.js'), la aplicación se comporta como una app nativa, permitiendo que la anclaras a tu pantalla de inicio en iOS con un icono premium generado por IA.
+3. Base de Datos Híbrida:
+   - Local (localStorage): Guarda cada registro de forma instantánea en la memoria de tu propio dispositivo.
+   - Nube (Google Sheets): Cuando hay conexión, sincroniza automáticamente tus datos con una hoja de cálculo de Google Drive de manera gratuita.
+4. Backend "Serverless" (Google Apps Script): Un script ('google-script.js') configurado en tu Google Sheet que recibe de forma segura las peticiones de la app y las inserta como filas ordenadas.
+
+🚀 3. HITOS E INCIDENCIAS RESUELTAS EN EL PROCESO
+--------------------------------------------------------------------
+* Error de CORS en Google Apps Script: Corregimos un bug común en Apps Script eliminando un método de cabecera (.setHeaders) que Google no permite en salidas de texto y configurando la implementación para ejecutarse como "Cualquier Persona", lo que resolvió el error de comunicación de red.
+* Conexión con el iPhone: Configuramos un túnel de desarrollo local con 'localtunnel' para permitirte abrir y probar la aplicación directamente en tu iPhone, permitiendo guardarla como PWA en tu pantalla de inicio.
+* Incidencia de Red en Windows: Analizamos el comportamiento de Windows tras la desconexión de túneles locales (donde a veces el sistema muestra un icono de red Ethernet inactivo o ralentización de velocidad), indicando que un simple reinicio o restablecimiento de red limpia por completo los adaptadores virtuales creados temporalmente.
+
+--------------------------------------------------------------------
+📂 LISTA DE ARCHIVOS EN LA CARPETA:
+* index.html      - Estructura visual de la app.
+* index.css       - El diseño premium, sombras, desenfoques y animaciones HSL.
+* app.js          - La lógica de tiempos, almacenamiento local y peticiones de red.
+* google-script.js - El código para copiar a tu Google Sheet.
+* sw.js y manifest.json - Los archivos de configuración de PWA e instalación móvil.
+* assets/icon.png - El icono premium de alta resolución generado para tu pantalla.
+====================================================================
