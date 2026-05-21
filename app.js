@@ -215,7 +215,19 @@ async function refreshAll() {
 
   try {
     // ONE call returns active state + history + stats
-    const data = await apiCall('getFullState', {}, signal);
+    let data = await apiCall('getFullState', {}, signal);
+
+    // Fallback: if backend doesn't recognize getFullState yet (old deployment),
+    // use the legacy two-call approach so the app never breaks
+    if (!data || data.error) {
+      const [state, hist] = await Promise.all([
+        apiCall('getCurrentState', {}, signal),
+        apiCall('getRecentHistory', {}, signal)
+      ]);
+      if (state && hist) {
+        data = { ...state, ...hist };
+      }
+    }
 
     // Discard stale response
     if (actionEpoch !== myEpoch || isActionBusy) return;
