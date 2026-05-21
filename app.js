@@ -265,39 +265,33 @@ function formatHMS(ms) {
 }
 
 // --- ACTION BUTTON (START/STOP) ---
-async function handleAction() {
-  // Bloquear doble-tap y acciones concurrentes
-  if (isActionBusy) return;
-  isActionBusy = true;
-
-  // Deshabilitar el botón visualmente Y con pointer-events
+function lockButton() {
   elBtnAction.style.pointerEvents = 'none';
   elBtnAction.style.opacity = '0.4';
   elBtnAction.style.transform = 'scale(0.95)';
+}
+function unlockButton() {
+  elBtnAction.style.pointerEvents = '';
+  elBtnAction.style.opacity = '';
+  elBtnAction.style.transform = '';
+}
 
+async function handleAction() {
+  if (isActionBusy) return;
+  isActionBusy = true;
+  lockButton();
   if (navigator.vibrate) navigator.vibrate(15);
 
   try {
-    // Paso 1: CONSULTAR BACKEND para saber el estado REAL
-    // (no confiar en activeStartTime local — puede estar desincronizado)
-    const state = await apiCall('getCurrentState');
-    if (!state) {
-      showToast('Sin conexión al servidor');
-      return;
-    }
-
-    if (!state.active) {
-      // ═══ BACKEND DICE: NO HAY TURNO ACTIVO → INICIAR ═══
-      // Limpiar cualquier estado local fantasma primero
-      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-      activeStartTime = null;
-      localStorage.removeItem('activeStartTime');
-
-      elTimerStatus.textContent = 'Registrando entrada...';
+    if (!activeStartTime) {
+      // ═══ INICIAR TURNO ═══
+      // Feedback visual INMEDIATO
+      elBtnActionLabel.textContent = 'Registrando...';
+      elTimerStatus.textContent = 'Conectando...';
       elTimerStatus.style.color = 'var(--system-orange)';
-      elBtnActionLabel.textContent = '...';
 
       const r = await apiCall('registrarEntrada');
+
       if (r && r.success) {
         activeStartTime = Date.now();
         localStorage.setItem('activeStartTime', JSON.stringify(activeStartTime));
@@ -306,49 +300,44 @@ async function handleAction() {
         elTimerStatus.textContent = 'Turno activo';
         elTimerStatus.style.color = 'var(--system-orange)';
         showToast('Turno iniciado');
-        updateHistory();
       } else {
+        // Falló — restaurar UI limpia
         setActionButtonState(false);
         elTimerDisplay.textContent = '00:00:00';
         elTimerStatus.textContent = 'Error al iniciar';
         elTimerStatus.style.color = 'var(--text-secondary)';
       }
     } else {
-      // ═══ BACKEND DICE: HAY TURNO ACTIVO → TERMINAR ═══
-      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-      elTimerStatus.textContent = 'Finalizando turno...';
-      elTimerStatus.style.color = 'var(--text-secondary)';
-      elBtnActionLabel.textContent = '...';
-
-      const r = await apiCall('registrarSalida', { coords: null });
+      // ═══ TERMINAR TURNO ═══
+      // Feedback visual INMEDIATO — parar timer y cambiar botón YA
+      clearInterval(timerInterval);
+      timerInterval = null;
       activeStartTime = null;
       localStorage.removeItem('activeStartTime');
+      setActionButtonState(false);
+      elTimerDisplay.textContent = '00:00:00';
+      elTimerStatus.textContent = 'Finalizando...';
+      elTimerStatus.style.color = 'var(--text-secondary)';
+
+      const r = await apiCall('registrarSalida', { coords: null });
 
       if (r && r.success) {
-        showToast('Turno finalizado');
-        setActionButtonState(false);
-        elTimerDisplay.textContent = '00:00:00';
         elTimerStatus.textContent = 'Turno inactivo';
-        // Esperar un momento antes de refrescar para que Sheets procese
-        await new Promise(resolve => setTimeout(resolve, 500));
-        updateHistory();
+        showToast('Turno finalizado');
       } else {
-        setActionButtonState(false);
-        elTimerDisplay.textContent = '00:00:00';
         elTimerStatus.textContent = 'Error al finalizar';
       }
     }
   } catch (err) {
-    showToast('Error inesperado');
-    console.error(err);
+    showToast('Error de conexión');
   } finally {
-    // Desbloquear después de 2.5s — suficiente para que Google Sheets procese
+    // Desbloquear botón y sincronizar con backend
     setTimeout(() => {
       isActionBusy = false;
-      elBtnAction.style.pointerEvents = '';
-      elBtnAction.style.opacity = '';
-      elBtnAction.style.transform = '';
-    }, 2500);
+      unlockButton();
+      // Sincronizar estado real con backend (corrige cualquier desfase)
+      refreshAll();
+    }, 1500);
   }
 }
 
