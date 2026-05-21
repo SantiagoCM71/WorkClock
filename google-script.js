@@ -337,335 +337,382 @@ function iniciarNuevoMesApp() {
 }
 
 // =====================================================================
-// --- DASHBOARD GENERATOR ---
+// --- DASHBOARD v2 — 100% FÓRMULAS (auto-actualización en tiempo real)
 // =====================================================================
 function generarDashboard() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const src = getSheet();
   const tz = Session.getScriptTimeZone();
-  const DASH_NAME = 'Dashboard';
+  const DASH = 'Dashboard';
+  const S = SHEET_NAME; // 'Hoja 1'
 
-  // --- Crear o limpiar hoja Dashboard ---
-  let d = ss.getSheetByName(DASH_NAME);
-  if (d) { d.clear(); } else { d = ss.insertSheet(DASH_NAME, 0); }
+  // --- Crear / limpiar hoja ---
+  let d = ss.getSheetByName(DASH);
+  if (d) {
+    d.clearContents(); d.clearFormats(); d.clearNotes();
+    d.getCharts().forEach(c => d.removeChart(c));
+    d.setConditionalFormatRules([]);
+  } else {
+    d = ss.insertSheet(DASH, 0);
+  }
 
-  // Eliminar charts existentes
-  d.getCharts().forEach(c => d.removeChart(c));
+  // === PALETA ===
+  const HD = '#1b5e20', HM = '#2e7d32', HL = '#4caf50', HX = '#a5d6a7';
+  const LG = '#e8f5e9', W = '#ffffff', G1 = '#f5f5f5', G2 = '#fafafa';
+  const BO = '#c8e6c9', TX = '#212121', TS = '#616161', RD = '#c62828', GO = '#f9a825';
 
-  // --- Leer datos del mes actual ---
-  const allData = src.getDataRange().getValues();
-  const hoy = new Date();
-  const mesActual = hoy.getMonth();
-  const anioActual = hoy.getFullYear();
-  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  // === COLUMNAS ===
+  [[1,20],[2,160],[3,130],[4,130],[5,130],[6,30],[7,160],[8,160],[9,20],[10,1],[11,1]]
+    .forEach(([c,w]) => d.setColumnWidth(c,w));
+  d.setTabColor(HM);
+  d.hideColumns(10, 2);
 
-  let registros = [];
-  let totalSegs = 0;
-  let enSitio = 0;
-  let fuera = 0;
-  let sinGPS = 0;
+  // Fondo base
+  d.getRange(1,1,75,9).setBackground(W).setFontColor(TX).setFontFamily('Arial');
 
-  for (let i = 1; i < allData.length; i++) {
-    const row = allData[i];
-    if (!row[0]) continue;
-    const rd = row[0] instanceof Date ? row[0] : new Date(row[0]);
-    if (rd.getMonth() !== mesActual || rd.getFullYear() !== anioActual) continue;
+  // ══════════════════════════════════════════
+  //  HELPER FORMULAS (columna J, oculta)
+  //  Estas fórmulas se recalculan SOLAS
+  // ══════════════════════════════════════════
+  const YC = `(YEAR('${S}'!A2:A2000)=YEAR(TODAY()))`;
+  const MC = `(MONTH('${S}'!A2:A2000)=MONTH(TODAY()))`;
+  const NE = `('${S}'!A2:A2000<>"")`;
+  const HN = `(ISNUMBER('${S}'!E2:E2000))`;
+  const SP = `${YC}*${MC}*${NE}`;                // SUMPRODUCT base
+  const CF = `">="&DATE(YEAR(TODAY()),MONTH(TODAY()),1)`;   // COUNTIFS >=
+  const CT = `"<"&DATE(YEAR(TODAY()),MONTH(TODAY())+1,1)`;  // COUNTIFS <
 
-    let segs = 0;
-    if (row[4] !== '' && row[4] !== null) {
-      if (row[4] instanceof Date) segs = row[4].getHours() * 3600 + row[4].getMinutes() * 60 + row[4].getSeconds();
-      else if (typeof row[4] === 'number') segs = Math.round(row[4] * 86400);
+  // J1: total horas (fracción de día) — se auto-actualiza
+  d.getRange('J1').setFormula(`=IFERROR(SUMPRODUCT(${SP}*${HN}*('${S}'!E2:E2000)),0)`);
+  // J2: horas decimales
+  d.getRange('J2').setFormula(`=J1*24`);
+  // J3: registros del mes
+  d.getRange('J3').setFormula(`=IFERROR(COUNTIFS('${S}'!A2:A2000,${CF},'${S}'!A2:A2000,${CT},'${S}'!A2:A2000,"<>"),0)`);
+  // J4: cumplimiento %
+  d.getRange('J4').setFormula(`=IFERROR(J2/${NOM_HORAS_LEGALES}*100,0)`);
+  // J5: salario causado
+  d.getRange('J5').setFormula(`=IFERROR(ROUND(${NOM_SALARIO_BASE}*J2/${NOM_HORAS_LEGALES},0),0)`);
+  // J6: aux transporte causado
+  d.getRange('J6').setFormula(`=IFERROR(ROUND(${NOM_AUX_TRANSPORTE}*J2/${NOM_HORAS_LEGALES},0),0)`);
+  // J7: neto a pagar
+  d.getRange('J7').setFormula(`=MAX(J5+J6-${NOM_DED_SALUD}-${NOM_DED_PENSION},0)`);
+  // J8: en sitio
+  d.getRange('J8').setFormula(`=IFERROR(COUNTIFS('${S}'!A2:A2000,${CF},'${S}'!A2:A2000,${CT},'${S}'!F2:F2000,"*En sitio*"),0)`);
+  // J9: fuera
+  d.getRange('J9').setFormula(`=IFERROR(COUNTIFS('${S}'!A2:A2000,${CF},'${S}'!A2:A2000,${CT},'${S}'!F2:F2000,"*Fuera*"),0)`);
+  // J10: sin GPS / otros
+  d.getRange('J10').setFormula(`=MAX(J3-J8-J9,0)`);
+
+  // ══════════════════════════════════════════
+  //  HEADER (filas 1–4)
+  // ══════════════════════════════════════════
+  d.setRowHeight(1, 6);
+  d.setRowHeight(2, 55);
+  d.setRowHeight(3, 28);
+  d.setRowHeight(4, 5);
+
+  d.getRange(2,1,2,9).setBackground(HD);
+  d.getRange('B2:E2').merge()
+    .setValue('📊  WorkClock Pro — Dashboard')
+    .setFontSize(20).setFontWeight('bold').setFontColor(W)
+    .setVerticalAlignment('middle');
+  d.getRange('G2:H2').merge()
+    .setFormula(`="🗓️  "&UPPER(TEXT(TODAY(),"MMMM YYYY"))`)
+    .setFontSize(14).setFontWeight('bold').setFontColor(HX)
+    .setHorizontalAlignment('right').setVerticalAlignment('middle').setBackground(HD);
+  d.getRange('B3:E3').merge()
+    .setValue('Control de Tiempo, Nómina y Asistencia')
+    .setFontSize(10).setFontColor(HX).setVerticalAlignment('middle').setBackground(HD);
+  d.getRange('G3:H3').merge()
+    .setValue('🔄 ' + Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm'))
+    .setFontSize(8).setFontColor(HX).setHorizontalAlignment('right')
+    .setVerticalAlignment('middle').setBackground(HD);
+
+  // ══════════════════════════════════════════
+  //  KPI CARDS (filas 5–10)  — con FÓRMULAS
+  // ══════════════════════════════════════════
+  d.setRowHeight(5, 12);
+  d.setRowHeight(6, 20);   // label
+  d.setRowHeight(7, 50);   // value
+  d.setRowHeight(8, 20);   // sub
+  d.setRowHeight(9, 5);    // gap card bottom
+  d.setRowHeight(10, 10);  // gap
+
+  // Definición de cards: [col, span, label, formula, sub, isDark]
+  const cards = [
+    [2, 1, '⏱️  HORAS DEL MES',   '=TEXT(J1,"[h]:mm:ss")',       NOM_HORAS_LEGALES+'h legales', false],
+    [3, 1, '📋  JORNADAS',         '=J3&""',                      'Registros del mes',            false],
+    [4, 1, '🎯  CUMPLIMIENTO',     '=TEXT(J4/100,"0.0%")',        'vs objetivo mensual',          false],
+    [5, 1, '💰  SALARIO CAUSADO',  '=TEXT(J5,"$#,##0")',          'Base proporcional',            false],
+    [7, 1, '💵  NETO A PAGAR',     '=TEXT(J7,"$#,##0")',          'Después de deducciones',       true],
+    [8, 1, '📊  TOTAL BRUTO',      '=TEXT(J5+J6,"$#,##0")',       'Salario + Auxilio',            false],
+  ];
+
+  cards.forEach(([col, span, label, formula, sub, dark]) => {
+    const bg  = dark ? HM  : LG;
+    const tv  = dark ? W   : HD;
+    const ts  = dark ? HX  : TS;
+
+    d.getRange(5, col, 5, span).setBackground(bg);
+    if (span > 1) {
+      d.getRange(6,col,1,span).merge();
+      d.getRange(7,col,1,span).merge();
+      d.getRange(8,col,1,span).merge();
     }
-    totalSegs += segs;
+    d.getRange(6,col).setValue(label).setFontSize(8).setFontWeight('bold')
+      .setFontColor(ts).setBackground(bg).setHorizontalAlignment('center').setVerticalAlignment('bottom');
+    const vc = d.getRange(7,col);
+    vc.setFormula(formula);
+    vc.setFontSize(20).setFontWeight('bold').setFontColor(tv).setBackground(bg)
+      .setHorizontalAlignment('center').setVerticalAlignment('middle');
+    d.getRange(8,col).setValue(sub).setFontSize(8).setFontColor(ts).setBackground(bg)
+      .setHorizontalAlignment('center').setVerticalAlignment('top');
+    d.getRange(5,col,5,span)
+      .setBorder(true,true,true,true,false,false,BO,SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  });
 
-    const rango = String(row[5] || '');
-    if (rango.includes('En sitio')) enSitio++;
-    else if (rango.includes('Fuera')) fuera++;
-    else sinGPS++;
+  // ══════════════════════════════════════════
+  //  BARRA DE PROGRESO — SPARKLINE (fila 11–12)
+  // ══════════════════════════════════════════
+  d.setRowHeight(11, 34);
+  d.setRowHeight(12, 10);
+  d.getRange(11,1,1,9).setBackground(LG);
 
-    registros.push({
-      fecha: rd,
-      dia: row[1] || '',
-      entrada: row[2],
-      salida: row[3],
-      segs: segs,
-      horas: row[4],
-      rango: rango,
-      ubicacion: row[6] || ''
+  d.getRange('B11').setValue('Progreso:')
+    .setFontSize(9).setFontWeight('bold').setFontColor(HM).setVerticalAlignment('middle').setBackground(LG);
+  d.getRange('C11:E11').merge()
+    .setFormula(`=IFERROR(SPARKLINE({J2,MAX(${NOM_HORAS_LEGALES}-J2,0)},{"charttype","bar";"max",${NOM_HORAS_LEGALES};"color1","#4caf50";"color2","#e0e0e0"}),"")`)
+    .setVerticalAlignment('middle').setBackground(LG);
+  d.getRange('G11:H11').merge()
+    .setFormula(`=TEXT(J4/100,"0.0%")&"  ("&TEXT(J1,"[h]:mm")&"h de ${NOM_HORAS_LEGALES}h)"`)
+    .setFontSize(10).setFontWeight('bold').setFontColor(HM)
+    .setHorizontalAlignment('right').setVerticalAlignment('middle').setBackground(LG);
+
+  // ══════════════════════════════════════════
+  //  SECCIÓN IZQUIERDA: Distribución (filas 13–19)
+  //  SECCIÓN DERECHA:   Liquidación  (filas 13–21)
+  // ══════════════════════════════════════════
+  d.setRowHeight(13, 30);
+
+  // --- Título distribución ---
+  d.getRange('B13:E13').merge()
+    .setValue('📍  Distribución de Asistencia')
+    .setFontSize(12).setFontWeight('bold').setFontColor(HD).setVerticalAlignment('middle');
+
+  // --- Título liquidación ---
+  d.getRange('G13:H13').merge()
+    .setValue('💼  Liquidación del Mes')
+    .setFontSize(12).setFontWeight('bold').setFontColor(HD).setVerticalAlignment('middle');
+
+  // --- Distribución tabla ---
+  const dH = 14; // dist header row
+  [14,15,16,17].forEach(r => d.setRowHeight(r, 28));
+
+  ['Estado','Registros','%','Mini gráfico'].forEach((h,i) => {
+    d.getRange(dH, 2+i).setValue(h)
+      .setBackground(HM).setFontColor(W).setFontSize(9).setFontWeight('bold')
+      .setHorizontalAlignment(i===0?'left':'center').setVerticalAlignment('middle');
+  });
+
+  const dist = [
+    ['✅  En sitio',        '=J8',  '=IFERROR(TEXT(J8/J3,"0.0%"),"-")',  '=IFERROR(SPARKLINE({J8,J3-J8},{"charttype","bar";"color1","#2e7d32";"color2","#e0e0e0";"max",J3}),"")'],
+    ['🚩  Fuera',           '=J9',  '=IFERROR(TEXT(J9/J3,"0.0%"),"-")',  '=IFERROR(SPARKLINE({J9,J3-J9},{"charttype","bar";"color1","#c62828";"color2","#e0e0e0";"max",J3}),"")'],
+    ['📱  Sin GPS / Manual','=J10', '=IFERROR(TEXT(J10/J3,"0.0%"),"-")', '=IFERROR(SPARKLINE({J10,J3-J10},{"charttype","bar";"color1","#9e9e9e";"color2","#e0e0e0";"max",J3}),"")'],
+  ];
+
+  dist.forEach(([lbl,cnt,pct,spark], i) => {
+    const rw = dH + 1 + i;
+    const bg = i%2===0 ? W : G1;
+    [[2,lbl],[3,cnt],[4,pct],[5,spark]].forEach(([c,v]) => {
+      const cell = d.getRange(rw,c);
+      if (String(v).startsWith('=')) cell.setFormula(v); else cell.setValue(v);
+      cell.setBackground(bg).setFontSize(9).setVerticalAlignment('middle')
+        .setHorizontalAlignment(c===2?'left':'center');
     });
-  }
+  });
+  d.getRange(dH,2,4,4).setBorder(true,true,true,true,true,true,BO,SpreadsheetApp.BorderStyle.SOLID);
 
-  const totalRegistros = registros.length;
-  const horasDecimal = totalSegs / 3600;
-  const horasStr = Math.floor(totalSegs / 3600) + ':' + String(Math.floor((totalSegs % 3600) / 60)).padStart(2, '0') + ':' + String(totalSegs % 60).padStart(2, '0');
-  const cumplimiento = NOM_HORAS_LEGALES > 0 ? (horasDecimal / NOM_HORAS_LEGALES) * 100 : 0;
-  const propTrabajada = horasDecimal / NOM_HORAS_LEGALES;
-  const salarioCausado = Math.round(NOM_SALARIO_BASE * propTrabajada);
-  const auxCausado = Math.round(NOM_AUX_TRANSPORTE * propTrabajada);
-  const netoPagar = salarioCausado + auxCausado - NOM_DED_SALUD - NOM_DED_PENSION;
-  const totalMes = salarioCausado + auxCausado;
-
-  // --- COLORES ---
-  const VERDE_OSCURO = '#1b5e20';
-  const VERDE        = '#2e7d32';
-  const VERDE_CLARO  = '#4caf50';
-  const VERDE_FONDO  = '#e8f5e9';
-  const BLANCO       = '#ffffff';
-  const GRIS_CLARO   = '#f5f5f5';
-  const GRIS_BORDE   = '#e0e0e0';
-  const TEXTO_OSCURO = '#212121';
-  const TEXTO_SEC    = '#616161';
-  const ROJO         = '#c62828';
-  const NARANJA      = '#e65100';
-
-  // --- CONFIGURAR HOJA ---
-  d.setColumnWidth(1, 30);   // margen
-  d.setColumnWidth(2, 180);
-  d.setColumnWidth(3, 140);
-  d.setColumnWidth(4, 140);
-  d.setColumnWidth(5, 140);
-  d.setColumnWidth(6, 140);
-  d.setColumnWidth(7, 140);
-  d.setColumnWidth(8, 30);   // margen
-  d.setColumnWidth(9, 180);
-  d.setColumnWidth(10, 160);
-  d.setTabColor(VERDE);
-
-  // Fondo general blanco
-  d.getRange(1, 1, 60, 12).setBackground(BLANCO);
-
-  // ==================== HEADER ====================
-  d.setRowHeight(1, 10);
-  d.setRowHeight(2, 45);
-  d.getRange('B2:G2').merge()
-    .setValue('📊 WorkClock Pro — Dashboard')
-    .setFontSize(18).setFontWeight('bold').setFontColor(VERDE_OSCURO)
+  // --- SPARKLINE donut de cumplimiento debajo de distribución ---
+  d.setRowHeight(18, 10);
+  d.setRowHeight(19, 26);
+  d.getRange('B19:E19').merge()
+    .setFormula(`=IFERROR(SPARKLINE({J4,MAX(100-J4,0)},{"charttype","bar";"max",100;"color1","#4caf50";"color2","#e0e0e0"}),"")`)
     .setVerticalAlignment('middle');
 
-  d.setRowHeight(3, 25);
-  d.getRange('B3:G3').merge()
-    .setValue('Control de Tiempo, Nómina y Asistencia  |  ' + meses[mesActual] + ' ' + anioActual)
-    .setFontSize(10).setFontColor(TEXTO_SEC).setVerticalAlignment('middle');
+  // --- Liquidación tabla ---
+  [14,15,16,17,18,19,20,21].forEach(r => d.setRowHeight(r, Math.max(d.getRowHeight(r)||28, 28)));
 
-  // Línea separadora
-  d.setRowHeight(4, 4);
-  d.getRange('B4:G4').merge().setBackground(VERDE);
-
-  // ==================== KPI CARDS (Row 6-8) ====================
-  d.setRowHeight(5, 15);
-  d.setRowHeight(6, 22);
-  d.setRowHeight(7, 35);
-  d.setRowHeight(8, 20);
-
-  const kpis = [
-    { col: 2, label: '⏱️ HORAS DEL MES', value: horasStr, sub: NOM_HORAS_LEGALES + ' h legales' },
-    { col: 3, label: '📅 REGISTROS', value: totalRegistros, sub: 'Jornadas registradas' },
-    { col: 4, label: '📈 CUMPLIMIENTO', value: cumplimiento.toFixed(1) + '%', sub: 'vs. objetivo mensual' },
-    { col: 5, label: '💰 SALARIO CAUSADO', value: '$' + salarioCausado.toLocaleString('es-CO'), sub: 'Base proporcional' },
-    { col: 6, label: '💵 NETO A PAGAR', value: '$' + Math.max(0, netoPagar).toLocaleString('es-CO'), sub: 'Después de deducciones' },
+  const liq = [
+    {l:'Concepto',           v:'Valor',                     hdr:true},
+    {l:'Salario Causado',    v:'=TEXT(J5,"$ #,##0")',        hdr:false},
+    {l:'Auxilio Transporte', v:'=TEXT(J6,"$ #,##0")',        hdr:false},
+    {l:'(-) Salud',          v:'=TEXT(-'+NOM_DED_SALUD+',"$ #,##0")',  hdr:false, red:true},
+    {l:'(-) Pensión',        v:'=TEXT(-'+NOM_DED_PENSION+',"$ #,##0")',hdr:false, red:true},
+    {l:'Total Bruto',        v:'=TEXT(J5+J6,"$ #,##0")',     hdr:false},
+    {l:'NETO A PAGAR',       v:'=TEXT(J7,"$ #,##0")',        hdr:false, total:true},
   ];
 
-  kpis.forEach(k => {
-    const isNeto = k.col === 6;
-    const cardBg = isNeto ? VERDE : VERDE_FONDO;
-    const textColor = isNeto ? BLANCO : VERDE_OSCURO;
-    const subColor = isNeto ? '#c8e6c9' : TEXTO_SEC;
+  liq.forEach((r, i) => {
+    const rw = 14 + i;
+    let bg = i%2===0 ? W : G1;
+    let lc = TX, vc = TX;
 
-    d.getRange(6, k.col).setValue(k.label)
-      .setFontSize(8).setFontWeight('bold').setFontColor(subColor).setBackground(cardBg)
-      .setHorizontalAlignment('center').setVerticalAlignment('middle');
-    d.getRange(7, k.col).setValue(k.value)
-      .setFontSize(18).setFontWeight('bold').setFontColor(textColor).setBackground(cardBg)
-      .setHorizontalAlignment('center').setVerticalAlignment('middle');
-    d.getRange(8, k.col).setValue(k.sub)
-      .setFontSize(8).setFontColor(subColor).setBackground(cardBg)
-      .setHorizontalAlignment('center').setVerticalAlignment('middle');
+    if (r.hdr)   { bg = HM; lc = W; vc = W; }
+    if (r.total) { bg = HD; lc = W; vc = GO; }
+    if (r.red)   { vc = RD; }
 
-    // Bordes de la card
-    d.getRange(6, k.col, 3, 1).setBorder(true, true, true, true, false, false, GRIS_BORDE, SpreadsheetApp.BorderStyle.SOLID);
+    d.getRange(rw,7).setValue(r.l).setBackground(bg).setFontColor(lc).setFontSize(r.total?11:9)
+      .setFontWeight(r.hdr||r.total?'bold':'normal').setVerticalAlignment('middle');
+
+    const vCell = d.getRange(rw,8);
+    if (r.v.startsWith('=')) vCell.setFormula(r.v); else vCell.setValue(r.v);
+    vCell.setBackground(bg).setFontColor(vc).setFontSize(r.total?11:9)
+      .setFontWeight(r.hdr||r.total?'bold':'normal')
+      .setHorizontalAlignment('right').setVerticalAlignment('middle');
+  });
+  d.getRange(14,7,liq.length,2).setBorder(true,true,true,true,true,true,BO,SpreadsheetApp.BorderStyle.SOLID);
+
+  // Info período
+  d.setRowHeight(21, 22);
+  d.setRowHeight(22, 22);
+  d.getRange('G21:H21').merge()
+    .setFormula(`="📅 Período: 01/"&TEXT(MONTH(TODAY()),"00")&"/"&YEAR(TODAY())&" — "&DAY(EOMONTH(TODAY(),0))&"/"&TEXT(MONTH(TODAY()),"00")&"/"&YEAR(TODAY())`)
+    .setFontSize(8).setFontColor(TS).setBackground(LG).setVerticalAlignment('middle');
+  d.getRange('G22:H22').merge()
+    .setValue('🎯 Objetivo: '+NOM_HORAS_LEGALES+'h  |  Base: $'+NOM_SALARIO_BASE.toLocaleString('es-CO'))
+    .setFontSize(8).setFontColor(TS).setBackground(LG).setVerticalAlignment('middle');
+
+  // ══════════════════════════════════════════
+  //  TABLA REGISTROS — FÓRMULA FILTER (auto-update!)
+  // ══════════════════════════════════════════
+  d.setRowHeight(23, 15);
+  d.setRowHeight(24, 32);
+  d.setRowHeight(25, 28);
+
+  d.getRange('B24:H24').merge()
+    .setValue('📋  Registros del Mes  —  se actualizan automáticamente al agregar datos')
+    .setFontSize(12).setFontWeight('bold').setFontColor(HD).setVerticalAlignment('middle');
+
+  // Headers
+  ['Fecha','Día','Entrada','Salida','Horas','','Rango'].forEach((h,i) => {
+    d.getRange(25, 2+i).setValue(h)
+      .setBackground(HM).setFontColor(W).setFontSize(9).setFontWeight('bold')
+      .setHorizontalAlignment('center').setVerticalAlignment('middle');
   });
 
-  // ==================== BARRA DE PROGRESO (Row 10) ====================
-  d.setRowHeight(9, 15);
-  d.setRowHeight(10, 30);
-  d.getRange('B10').setValue('Progreso mensual:').setFontSize(9).setFontWeight('bold').setFontColor(TEXTO_OSCURO);
-  d.getRange('C10:F10').merge();
-  const barText = '█'.repeat(Math.min(Math.round(cumplimiento / 5), 20)) + '░'.repeat(Math.max(20 - Math.round(cumplimiento / 5), 0));
-  d.getRange('C10').setValue(barText + '  ' + cumplimiento.toFixed(1) + '% de ' + NOM_HORAS_LEGALES + 'h')
-    .setFontFamily('Courier New').setFontSize(11).setFontColor(cumplimiento >= 95 ? VERDE : cumplimiento >= 50 ? NARANJA : ROJO)
+  // FILTER fórmula — ordena por fecha desc, muestra todo el mes
+  d.getRange(26, 2).setFormula(
+    `=IFERROR(SORT(FILTER(`+
+    `CHOOSE({1,2,3,4,5,6,7},`+
+    `'${S}'!A2:A2000,`+
+    `'${S}'!B2:B2000,`+
+    `IF('${S}'!C2:C2000<>"",TEXT('${S}'!C2:C2000,"h:mm AM/PM"),"--"),`+
+    `IF('${S}'!D2:D2000<>"",TEXT('${S}'!D2:D2000,"h:mm AM/PM"),"--"),`+
+    `IF('${S}'!E2:E2000<>"",TEXT('${S}'!E2:E2000,"[h]:mm:ss"),"--"),`+
+    `"",`+
+    `IF('${S}'!F2:F2000<>"",'${S}'!F2:F2000,"--")),`+
+    `YEAR('${S}'!A2:A2000)=YEAR(TODAY()),`+
+    `MONTH('${S}'!A2:A2000)=MONTH(TODAY()),`+
+    `'${S}'!A2:A2000<>""`+
+    `),1,FALSE),"")`
+  );
+
+  // Formatear la columna de fechas
+  d.getRange(26, 2, 40, 1).setNumberFormat('dd/MM/yyyy');
+  // Formatear el área de datos
+  d.getRange(26, 2, 40, 7).setFontSize(9).setVerticalAlignment('middle')
+    .setHorizontalAlignment('center');
+  // Borde
+  d.getRange(25, 2, 42, 7)
+    .setBorder(true,true,true,true,true,true,BO,SpreadsheetApp.BorderStyle.SOLID);
+
+  // Conditional formatting para Rango
+  const rangoArea = d.getRange(26, 8, 40, 1);
+  d.setConditionalFormatRules([
+    SpreadsheetApp.newConditionalFormatRule().whenTextContains('En sitio').setFontColor(HM).setRanges([rangoArea]).build(),
+    SpreadsheetApp.newConditionalFormatRule().whenTextContains('Fuera').setFontColor(RD).setRanges([rangoArea]).build(),
+    SpreadsheetApp.newConditionalFormatRule().whenTextContains('Manual').setFontColor(TS).setRanges([rangoArea]).build(),
+    SpreadsheetApp.newConditionalFormatRule().whenTextContains('En curso').setFontColor('#e65100').setRanges([rangoArea]).build(),
+  ]);
+
+  // Alternating colors para filas de datos
+  for (let i = 0; i < 35; i++) {
+    const bg = i % 2 === 0 ? W : G1;
+    d.getRange(26 + i, 2, 1, 7).setBackground(bg);
+  }
+
+  // ══════════════════════════════════════════
+  //  CHART — Horas por día (SPARKLINE columnas)
+  // ══════════════════════════════════════════
+  d.setRowHeight(67, 15);
+  d.setRowHeight(68, 28);
+  d.setRowHeight(69, 55);
+
+  d.getRange('B68:H68').merge()
+    .setValue('📈  Horas Trabajadas por Día (sparkline)')
+    .setFontSize(12).setFontWeight('bold').setFontColor(HD).setVerticalAlignment('middle');
+
+  // SPARKLINE column chart basado en los datos del mes
+  d.getRange('B69:H69').merge()
+    .setFormula(
+      `=IFERROR(SPARKLINE(`+
+      `FILTER('${S}'!E2:E2000*24,`+
+      `YEAR('${S}'!A2:A2000)=YEAR(TODAY()),`+
+      `MONTH('${S}'!A2:A2000)=MONTH(TODAY()),`+
+      `'${S}'!A2:A2000<>"",`+
+      `ISNUMBER('${S}'!E2:E2000)),`+
+      `{"charttype","column";"color","#4caf50";"ymin",0;"ymax",10;"empty","ignore"}),"")`
+    )
     .setVerticalAlignment('middle');
 
-  // ==================== DISTRIBUCIÓN (Row 12) ====================
-  d.setRowHeight(11, 15);
-  d.setRowHeight(12, 22);
-  d.getRange('B12:D12').merge()
-    .setValue('📍 Distribución de Asistencia')
-    .setFontSize(12).setFontWeight('bold').setFontColor(VERDE_OSCURO);
+  // ══════════════════════════════════════════
+  //  FOOTER
+  // ══════════════════════════════════════════
+  d.setRowHeight(70, 8);
+  d.setRowHeight(71, 25);
+  d.getRange('B71:H71').merge()
+    .setFormula(`="⚡ WorkClock Pro  |  Dashboard generado: "&TEXT(NOW(),"dd/MM/yyyy HH:mm")&"  |  Los datos se actualizan automáticamente"`)
+    .setFontSize(8).setFontColor(TS).setHorizontalAlignment('center').setBackground(LG);
 
-  d.getRange('F12:G12').merge()
-    .setValue('💼 Liquidación del Mes')
-    .setFontSize(12).setFontWeight('bold').setFontColor(VERDE_OSCURO);
-
-  // Tabla distribución
-  d.setRowHeight(13, 25);
-  d.setRowHeight(14, 25);
-  d.setRowHeight(15, 25);
-  d.setRowHeight(16, 25);
-
-  d.getRange('B13').setValue('Estado').setFontWeight('bold').setFontSize(9).setBackground(VERDE).setFontColor(BLANCO);
-  d.getRange('C13').setValue('Cantidad').setFontWeight('bold').setFontSize(9).setBackground(VERDE).setFontColor(BLANCO).setHorizontalAlignment('center');
-  d.getRange('D13').setValue('Porcentaje').setFontWeight('bold').setFontSize(9).setBackground(VERDE).setFontColor(BLANCO).setHorizontalAlignment('center');
-
-  const distData = [
-    ['✅ En sitio', enSitio, totalRegistros > 0 ? (enSitio / totalRegistros * 100).toFixed(1) + '%' : '0%'],
-    ['🚩 Fuera', fuera, totalRegistros > 0 ? (fuera / totalRegistros * 100).toFixed(1) + '%' : '0%'],
-    ['📱 Sin GPS / Manual', sinGPS, totalRegistros > 0 ? (sinGPS / totalRegistros * 100).toFixed(1) + '%' : '0%'],
-  ];
-  distData.forEach((r, idx) => {
-    const rowN = 14 + idx;
-    const bg = idx % 2 === 0 ? GRIS_CLARO : BLANCO;
-    d.getRange(rowN, 2).setValue(r[0]).setFontSize(9).setBackground(bg);
-    d.getRange(rowN, 3).setValue(r[1]).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
-    d.getRange(rowN, 4).setValue(r[2]).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
-  });
-  d.getRange(13, 2, 4, 3).setBorder(true, true, true, true, true, true, GRIS_BORDE, SpreadsheetApp.BorderStyle.SOLID);
-
-  // ==================== LIQUIDACIÓN (Rows 13-19) ====================
-  const liqData = [
-    ['Concepto', 'Valor'],
-    ['Salario Causado', '$' + salarioCausado.toLocaleString('es-CO')],
-    ['Auxilio Transporte', '$' + auxCausado.toLocaleString('es-CO')],
-    ['(-) Salud', '-$' + NOM_DED_SALUD.toLocaleString('es-CO')],
-    ['(-) Pensión', '-$' + NOM_DED_PENSION.toLocaleString('es-CO')],
-    ['Total Mes', '$' + totalMes.toLocaleString('es-CO')],
-    ['NETO A PAGAR', '$' + Math.max(0, netoPagar).toLocaleString('es-CO')],
-  ];
-
-  liqData.forEach((r, idx) => {
-    const rowN = 13 + idx;
-    if (idx === 0) {
-      d.getRange(rowN, 6).setValue(r[0]).setFontWeight('bold').setFontSize(9).setBackground(VERDE).setFontColor(BLANCO);
-      d.getRange(rowN, 7).setValue(r[1]).setFontWeight('bold').setFontSize(9).setBackground(VERDE).setFontColor(BLANCO).setHorizontalAlignment('right');
-    } else if (idx === liqData.length - 1) {
-      d.getRange(rowN, 6).setValue(r[0]).setFontWeight('bold').setFontSize(11).setBackground(VERDE_OSCURO).setFontColor(BLANCO);
-      d.getRange(rowN, 7).setValue(r[1]).setFontWeight('bold').setFontSize(11).setBackground(VERDE_OSCURO).setFontColor(BLANCO).setHorizontalAlignment('right');
-    } else {
-      const bg = idx % 2 === 0 ? GRIS_CLARO : BLANCO;
-      const isDeduction = r[0].startsWith('(-)');
-      d.getRange(rowN, 6).setValue(r[0]).setFontSize(9).setBackground(bg).setFontColor(isDeduction ? ROJO : TEXTO_OSCURO);
-      d.getRange(rowN, 7).setValue(r[1]).setFontSize(9).setBackground(bg).setHorizontalAlignment('right').setFontColor(isDeduction ? ROJO : TEXTO_OSCURO);
-    }
-  });
-  d.getRange(13, 6, liqData.length, 2).setBorder(true, true, true, true, true, true, GRIS_BORDE, SpreadsheetApp.BorderStyle.SOLID);
-
-  // ==================== INFO PERIODO ====================
-  const rowPeriodo = 13 + liqData.length + 1;
-  d.getRange(rowPeriodo, 6, 1, 2).merge()
-    .setValue('ℹ️ Período: 01/' + String(mesActual + 1).padStart(2, '0') + '/' + anioActual + ' - ' +
-             new Date(anioActual, mesActual + 1, 0).getDate() + '/' + String(mesActual + 1).padStart(2, '0') + '/' + anioActual)
-    .setFontSize(8).setFontColor(TEXTO_SEC).setBackground(VERDE_FONDO);
-  const rowObj = rowPeriodo + 1;
-  d.getRange(rowObj, 6, 1, 2).merge()
-    .setValue('🎯 Horario objetivo: ' + NOM_HORAS_LEGALES + ':00:00 h')
-    .setFontSize(8).setFontColor(TEXTO_SEC).setBackground(VERDE_FONDO);
-
-  // ==================== TABLA REGISTROS RECIENTES ====================
-  const tblStart = 18;
-  d.setRowHeight(tblStart - 1, 15);
-  d.getRange(tblStart, 2, 1, 6).merge()
-    .setValue('📋 Registros Recientes')
-    .setFontSize(12).setFontWeight('bold').setFontColor(VERDE_OSCURO);
-
-  const tblHeaderRow = tblStart + 1;
-  const headers = ['Fecha', 'Día', 'Entrada', 'Salida', 'Horas', 'Rango'];
-  headers.forEach((h, idx) => {
-    d.getRange(tblHeaderRow, 2 + idx).setValue(h)
-      .setFontWeight('bold').setFontSize(9).setFontColor(BLANCO)
-      .setBackground(VERDE).setHorizontalAlignment('center');
-  });
-
-  // Datos (últimos 15 registros, más recientes primero)
-  const recientes = registros.slice(-15).reverse();
-  recientes.forEach((r, idx) => {
-    const rowN = tblHeaderRow + 1 + idx;
-    const bg = idx % 2 === 0 ? BLANCO : GRIS_CLARO;
-    const fechaStr = r.fecha instanceof Date ? Utilities.formatDate(r.fecha, tz, 'dd/MM/yyyy') : r.fecha;
-    const entStr = r.entrada instanceof Date ? Utilities.formatDate(r.entrada, tz, 'h:mm a') : (r.entrada || '--');
-    const salStr = r.salida instanceof Date ? Utilities.formatDate(r.salida, tz, 'h:mm a') : (r.salida || '--');
-
-    let horasStr2 = '--';
-    if (r.segs > 0) {
-      const hh = Math.floor(r.segs / 3600);
-      const mm = Math.floor((r.segs % 3600) / 60);
-      const ss2 = r.segs % 60;
-      horasStr2 = hh + ':' + String(mm).padStart(2, '0') + ':' + String(ss2).padStart(2, '0');
-    }
-
-    d.getRange(rowN, 2).setValue(fechaStr).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
-    d.getRange(rowN, 3).setValue(r.dia).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
-    d.getRange(rowN, 4).setValue(entStr).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
-    d.getRange(rowN, 5).setValue(salStr).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
-    d.getRange(rowN, 6).setValue(horasStr2).setFontSize(9).setBackground(bg).setHorizontalAlignment('center').setFontWeight('bold');
-
-    // Rango con color
-    const rangoCell = d.getRange(rowN, 7);
-    rangoCell.setValue(r.rango).setFontSize(9).setBackground(bg).setHorizontalAlignment('center');
-    if (r.rango.includes('En sitio')) rangoCell.setFontColor(VERDE);
-    else if (r.rango.includes('Fuera')) rangoCell.setFontColor(ROJO);
-    else rangoCell.setFontColor(TEXTO_SEC);
-  });
-
-  // Bordes tabla
-  if (recientes.length > 0) {
-    d.getRange(tblHeaderRow, 2, recientes.length + 1, 6)
-      .setBorder(true, true, true, true, true, true, GRIS_BORDE, SpreadsheetApp.BorderStyle.SOLID);
-  }
-
-  // ==================== CHART: Horas por día ====================
-  const chartStart = tblHeaderRow + recientes.length + 3;
-  d.getRange(chartStart, 2, 1, 4).merge()
-    .setValue('📈 Horas Trabajadas por Día')
-    .setFontSize(12).setFontWeight('bold').setFontColor(VERDE_OSCURO);
-
-  // Escribir datos para el chart en un rango oculto
-  const chartDataStart = chartStart + 1;
-  const chartRegistros = registros.slice(-20);
-  chartRegistros.forEach((r, idx) => {
-    const rowN = chartDataStart + idx;
-    const fechaStr = r.fecha instanceof Date ? Utilities.formatDate(r.fecha, tz, 'dd/MM') : '';
-    d.getRange(rowN, 2).setValue(fechaStr).setFontSize(8).setFontColor(TEXTO_SEC);
-    d.getRange(rowN, 3).setValue(r.segs / 3600).setNumberFormat('0.00').setFontSize(8).setFontColor(TEXTO_SEC);
-  });
-
-  if (chartRegistros.length > 0) {
-    const chartRange = d.getRange(chartDataStart, 2, chartRegistros.length, 2);
-    const chart = d.newChart()
-      .setChartType(Charts.ChartType.COLUMN)
-      .addRange(chartRange)
-      .setPosition(chartDataStart, 4, 0, 0)
-      .setOption('title', '')
-      .setOption('legend', { position: 'none' })
-      .setOption('colors', [VERDE_CLARO])
-      .setOption('hAxis', { textStyle: { fontSize: 8 } })
-      .setOption('vAxis', { title: 'Horas', minValue: 0 })
-      .setOption('bar', { groupWidth: '60%' })
-      .setOption('width', 520)
-      .setOption('height', 280)
-      .build();
-    d.insertChart(chart);
-  }
-
-  // ==================== FOOTER ====================
-  const footerRow = chartDataStart + chartRegistros.length + 2;
-  d.getRange(footerRow, 2, 1, 6).merge()
-    .setValue('Generado automáticamente por WorkClock Pro — ' + Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm'))
-    .setFontSize(8).setFontColor(TEXTO_SEC).setHorizontalAlignment('center');
-
-  // Mover Dashboard al inicio
+  // ══════════════════════════════════════════
+  //  POSICIONAR AL INICIO + INSTALAR TRIGGER
+  // ══════════════════════════════════════════
   ss.setActiveSheet(d);
   ss.moveActiveSheet(1);
+  _instalarAutoRefresh();
 
-  SpreadsheetApp.getUi().alert('✅ Dashboard actualizado para ' + meses[mesActual] + ' ' + anioActual);
+  SpreadsheetApp.getUi().alert(
+    '✅ Dashboard v2 creado con éxito.\n\n'+
+    '• Todos los KPIs, la tabla y el gráfico se actualizan AUTOMÁTICAMENTE.\n'+
+    '• Solo ejecuta "Actualizar Dashboard" si necesitas re-generar el formato.\n'+
+    '• Agrega jornadas desde la app o directamente en "Hoja 1" y el dashboard se actualiza solo.'
+  );
+}
+
+// --- Instalar trigger de auto-refresh para timestamp ---
+function _instalarAutoRefresh() {
+  const existing = ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === '_onChangeDashTimestamp');
+  existing.forEach(t => ScriptApp.deleteTrigger(t));
+
+  ScriptApp.newTrigger('_onChangeDashTimestamp')
+    .forSpreadsheet(SpreadsheetApp.openById(SPREADSHEET_ID))
+    .onChange()
+    .create();
+}
+
+function _onChangeDashTimestamp(e) {
+  try {
+    if (e && e.source) {
+      const sheet = e.source.getActiveSheet();
+      if (sheet && sheet.getName() === 'Dashboard') return;
+    }
+    const d = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Dashboard');
+    if (!d) return;
+    const tz = Session.getScriptTimeZone();
+    d.getRange('G3').setValue('🔄 ' + Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm'))
+      .setFontSize(8).setFontColor('#a5d6a7').setBackground('#1b5e20')
+      .setHorizontalAlignment('right').setVerticalAlignment('middle');
+  } catch(err) { /* silenciar */ }
 }
 
 // --- EXPORTAR MES DESDE MENÚ DESKTOP ---
