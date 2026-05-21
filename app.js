@@ -81,7 +81,11 @@ document.addEventListener('DOMContentLoaded', () => {
   setupGreetingAndDate();
   loadSettings();
   setupEventListeners();
-  // No mostrar estado local hasta confirmar con backend
+
+  // 1) Render cached data INSTANTLY (no network wait)
+  renderFromCache();
+
+  // 2) Then sync with backend in background
   if (webAppUrl) {
     refreshAll();
   } else {
@@ -92,6 +96,49 @@ document.addEventListener('DOMContentLoaded', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 });
+
+// --- LOCAL CACHE (instant load) ---
+function saveToCache(fullState) {
+  try {
+    localStorage.setItem('wc_cache', JSON.stringify({
+      ts: Date.now(),
+      active: fullState.active,
+      startTime: fullState.startTime,
+      startTimestamp: fullState.startTimestamp,
+      history: fullState.history,
+      semanaTotal: fullState.semanaTotal,
+      mesTotal: fullState.mesTotal,
+      semanaSegundos: fullState.semanaSegundos,
+      mesSegundos: fullState.mesSegundos
+    }));
+  } catch(e) { /* quota exceeded — ignore */ }
+}
+
+function renderFromCache() {
+  try {
+    const raw = localStorage.getItem('wc_cache');
+    if (!raw) return;
+    const c = JSON.parse(raw);
+    // Show cached stats immediately
+    appData = {
+      weekStr: c.semanaTotal || '0 min',
+      monthStr: c.mesTotal || '0 min',
+      weekSecs: c.semanaSegundos || 0,
+      monthSecs: c.mesSegundos || 0
+    };
+    renderStats();
+    renderHistory(c.history || []);
+    // Restore active shift UI from cache
+    if (c.active && c.startTimestamp) {
+      activeStartTime = c.startTimestamp;
+      localStorage.setItem('activeStartTime', JSON.stringify(activeStartTime));
+      setActionButtonState(true);
+      startTimerUI(activeStartTime);
+      elTimerStatus.textContent = 'Turno activo';
+      elTimerStatus.style.color = 'var(--system-orange)';
+    }
+  } catch(e) { /* corrupt cache — ignore */ }
+}
 
 // --- GREETING & DATE ---
 function setupGreetingAndDate() {
@@ -147,35 +194,30 @@ async function apiCall(action, params = {}, signal = null) {
   }
 }
 
-// --- REFRESH ---
+// --- REFRESH (single API call) ---
 async function refreshAll() {
-  // Never refresh while an action is in progress
   if (isActionBusy) return;
-  // If a refresh is already running, abort it and start fresh
-  if (isRefreshing && refreshAbort) {
-    refreshAbort.abort();
-  }
+  if (isRefreshing && refreshAbort) refreshAbort.abort();
   isRefreshing = true;
-  const myEpoch = actionEpoch; // snapshot — if an action starts while we await, discard results
+  const myEpoch = actionEpoch;
   refreshAbort = new AbortController();
   const signal = refreshAbort.signal;
 
   try {
-    const state = await apiCall('getCurrentState', {}, signal);
+    // ONE call returns active state + history + stats
+    const data = await apiCall('getFullState', {}, signal);
 
-    // Discard stale response: an action started after we did
+    // Discard stale response
     if (actionEpoch !== myEpoch || isActionBusy) return;
-    if (!state) return;
+    if (!data) return;
 
-    if (state.active) {
+    // --- Active shift state ---
+    if (data.active) {
       setActionButtonState(true);
-      elTimerStatus.textContent = 'Trabajando desde ' + state.startTime;
+      elTimerStatus.textContent = 'Trabajando desde ' + data.startTime;
       elTimerStatus.style.color = 'var(--system-orange)';
       if (!activeStartTime) {
-        // Attempt to reconstruct actual start time from backend
-        // state.startTimestamp is epoch ms if backend provides it;
-        // otherwise fall back to Date.now() (timer will be approximate)
-        activeStartTime = state.startTimestamp || Date.now();
+        activeStartTime = data.startTimestamp || Date.now();
         localStorage.setItem('activeStartTime', JSON.stringify(activeStartTime));
       }
       startTimerUI(activeStartTime);
@@ -189,29 +231,22 @@ async function refreshAll() {
       elTimerStatus.style.color = 'var(--text-secondary)';
     }
 
-    // Await history so isRefreshing stays true until fully done
-    await updateHistory(signal, myEpoch);
+    // --- Stats + History ---
+    appData = {
+      weekStr: data.semanaTotal || '0 min',
+      monthStr: data.mesTotal || '0 min',
+      weekSecs: data.semanaSegundos || 0,
+      monthSecs: data.mesSegundos || 0
+    };
+    renderStats();
+    renderHistory(data.history || []);
+
+    // Save to cache for instant next load
+    saveToCache(data);
   } finally {
     isRefreshing = false;
     refreshAbort = null;
   }
-}
-
-async function updateHistory(signal = null, epoch = null) {
-  const seq = ++historySeq;
-  const data = await apiCall('getRecentHistory', {}, signal);
-  // Discard if a newer request was issued, or if an action started
-  if (historySeq !== seq) return;
-  if (epoch !== null && actionEpoch !== epoch) return;
-  if (!data) return;
-  appData = {
-    weekStr: data.semanaTotal || '0 min',
-    monthStr: data.mesTotal || '0 min',
-    weekSecs: data.semanaSegundos || 0,
-    monthSecs: data.mesSegundos || 0
-  };
-  renderStats();
-  renderHistory(data.history || []);
 }
 
 // --- STATS & NÓMINA ---

@@ -28,7 +28,8 @@ function doPost(e) {
     const action = params.action;
     let result = {};
 
-    if      (action === 'getCurrentState')       result = getCurrentState();
+    if      (action === 'getFullState')            result = getFullState();
+    else if (action === 'getCurrentState')       result = getCurrentState();
     else if (action === 'getRecentHistory')       result = getRecentHistory();
     else if (action === 'registrarEntrada')       result = registrarEntrada();
     else if (action === 'registrarSalida')        result = registrarSalida(params.coords);
@@ -104,41 +105,19 @@ function formatoHoras(segundos) {
 
 // --- ACCIONES API ---
 
-function getCurrentState() {
-  const sheet = getSheet();
-  const lastRow = getUltimaFila(sheet);
-  if (lastRow <= 1) return { active: false };
-
-  const numRows = Math.min(lastRow - 1, 15);
-  const startRow = lastRow - numRows + 1;
-  const values = sheet.getRange(startRow, 1, numRows, 4).getValues();
-  const tz = Session.getScriptTimeZone();
-
-  for (let i = values.length - 1; i >= 0; i--) {
-    const row = values[i];
-    if (row[2] !== '' && (!row[3] || row[3] === '')) {
-      const startTime = row[2] instanceof Date
-        ? Utilities.formatDate(row[2], tz, 'h:mm a')
-        : row[2];
-      return { active: true, startTime };
-    }
-  }
-  return { active: false };
-}
-
-function getRecentHistory() {
+// OPTIMIZED: Single call returns active state + history + stats
+function getFullState() {
   const sheet = getSheet();
   const values = sheet.getDataRange().getValues();
   const tz = Session.getScriptTimeZone();
 
-  if (values.length <= 1) {
-    return { history: [], semanaTotal: '0 min', mesTotal: '0 min', semanaSegundos: 0, mesSegundos: 0 };
-  }
+  // Default empty response
+  const empty = { active: false, history: [], semanaTotal: '0 min', mesTotal: '0 min', semanaSegundos: 0, mesSegundos: 0 };
+  if (values.length <= 1) return empty;
 
   const hoy = new Date();
   const startOfMonth = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
   startOfMonth.setHours(0, 0, 0, 0);
-
   const dow = hoy.getDay();
   const diffLunes = hoy.getDate() - dow + (dow === 0 ? -6 : 1);
   const startOfWeek = new Date(hoy.getFullYear(), hoy.getMonth(), diffLunes);
@@ -147,14 +126,31 @@ function getRecentHistory() {
   let historyData = [];
   let segsSemana = 0;
   let segsMes    = 0;
+  let activeInfo = { active: false };
 
   for (let i = values.length - 1; i >= 1; i--) {
     const row = values[i];
     if (!row[0]) continue;
 
+    // Detect active shift (first open one found from bottom)
+    if (!activeInfo.active && row[2] !== '' && (!row[3] || row[3] === '')) {
+      const startTime = row[2] instanceof Date
+        ? Utilities.formatDate(row[2], tz, 'h:mm a')
+        : row[2];
+      // Provide epoch ms for accurate timer reconstruction
+      let startTimestamp = null;
+      if (row[2] instanceof Date && row[0] instanceof Date) {
+        const d = new Date(row[0]);
+        const t = row[2];
+        d.setHours(t.getHours(), t.getMinutes(), t.getSeconds(), 0);
+        startTimestamp = d.getTime();
+      }
+      activeInfo = { active: true, startTime, startTimestamp };
+    }
+
     const rowDate = row[0] instanceof Date ? row[0] : new Date(row[0]);
 
-    // Acumular totales
+    // Accumulate totals
     if (row[4] !== '' && row[4] !== null) {
       let segs = 0;
       if (row[4] instanceof Date)        segs = row[4].getHours() * 3600 + row[4].getMinutes() * 60 + row[4].getSeconds();
@@ -163,7 +159,7 @@ function getRecentHistory() {
       if (rowDate >= startOfWeek)  segsSemana += segs;
     }
 
-    // Últimas 7 filas para el historial visible
+    // Last 7 rows for visible history
     if (historyData.length < 7) {
       const fecha   = row[0] instanceof Date ? Utilities.formatDate(row[0], tz, 'dd/MM') : row[0];
       const entrada = row[2] instanceof Date ? Utilities.formatDate(row[2], tz, 'h:mm a') : (row[2] || '--');
@@ -182,19 +178,14 @@ function getRecentHistory() {
       }
 
       historyData.push({
-        rowNumber: i + 1,
-        fecha,
-        entrada,
-        salida,
-        in24,
-        out24,
-        horas,
+        rowNumber: i + 1, fecha, entrada, salida, in24, out24, horas,
         rango: row[5] || ''
       });
     }
   }
 
   return {
+    ...activeInfo,
     history:        historyData,
     semanaTotal:    formatoHoras(segsSemana),
     mesTotal:       formatoHoras(segsMes),
@@ -202,6 +193,10 @@ function getRecentHistory() {
     mesSegundos:    segsMes
   };
 }
+
+// Legacy endpoints — redirect to getFullState for backwards compat
+function getCurrentState() { const s = getFullState(); return { active: s.active, startTime: s.startTime, startTimestamp: s.startTimestamp }; }
+function getRecentHistory() { const s = getFullState(); return { history: s.history, semanaTotal: s.semanaTotal, mesTotal: s.mesTotal, semanaSegundos: s.semanaSegundos, mesSegundos: s.mesSegundos }; }
 
 function registrarEntrada() {
   const sheet = getSheet();
