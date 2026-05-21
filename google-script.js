@@ -10,7 +10,7 @@
  * 4. Copia la URL /exec y pégala en Settings de la app
  *
  * ESTRUCTURA DE LA HOJA "Horas Laboradas":
- * A: Fecha | B: Dia | C: Entrada | D: Salida | E: Horas | F: Rango | G: Ubicacion | H: Notas
+ * A: Fecha | B: Dia | C: Entrada | D: Salida | E: Horas | F: Descripcion
  */
 
 const SPREADSHEET_ID = '12iuJSea50wuVwWGFHfdCRzah7OEMInOstcOM8ByzLMk';
@@ -181,8 +181,7 @@ function getFullState() {
 
       historyData.push({
         rowNumber: i + 1, fecha, dia: row[1] || '', entrada, salida, in24, out24, horas,
-        rango: row[5] || '',
-        nota: row[7] || ''
+        descripcion: row[5] || ''
       });
     }
   }
@@ -223,13 +222,12 @@ function registrarEntrada() {
   const nuevaFila = lastRow + 1;
   const dias = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 
-  sheet.getRange(nuevaFila, 1, 1, 7).setValues([[
+  sheet.getRange(nuevaFila, 1, 1, 6).setValues([[
     Utilities.formatDate(ahora, tz, 'yyyy-MM-dd'),
     dias[ahora.getDay()],
     Utilities.formatDate(ahora, tz, 'HH:mm:ss'),
     '',
     '',
-    'En curso...',
     ''
   ]]);
   return { success: true };
@@ -246,12 +244,6 @@ function registrarSalida(coords) {
   const values = sheet.getRange(startRow, 1, numRows, 4).getValues();
   const tz = Session.getScriptTimeZone();
   const horaSalida = Utilities.formatDate(new Date(), tz, 'HH:mm:ss');
-  const coordStr   = coords ? `${coords.lat},${coords.lng}` : 'N/A';
-  let rango = 'Sin GPS';
-  if (coords && coords.lat) {
-    const dist = calcularDistancia(coords.lat, coords.lng);
-    rango = dist <= RADIO_METROS ? '✅ En sitio' : '🚩 Fuera';
-  }
 
   // Cerrar TODOS los turnos abiertos (por si hay duplicados fantasma)
   let cerrados = 0;
@@ -259,11 +251,9 @@ function registrarSalida(coords) {
     const row = values[i];
     if (row[2] !== '' && (!row[3] || row[3] === '')) {
       const rowIndex = startRow + i;
-      sheet.getRange(rowIndex, 4, 1, 4).setValues([[
+      sheet.getRange(rowIndex, 4, 1, 2).setValues([[
         horaSalida,
-        '=IF(RC[-1]<RC[-2], 1+RC[-1]-RC[-2], RC[-1]-RC[-2])',
-        rango,
-        coordStr
+        '=IF(RC[-1]<RC[-2], 1+RC[-1]-RC[-2], RC[-1]-RC[-2])'
       ]]);
       sheet.getRange(rowIndex, 5).setNumberFormat('[h]:mm:ss');
       cerrados++;
@@ -291,7 +281,7 @@ function eliminarUltimoRegistro() {
   const sheet = getSheet();
   const lastRow = getUltimaFila(sheet);
   if (lastRow <= 1) throw new Error('No hay registros');
-  sheet.getRange(lastRow, 1, 1, 7).clearContent();
+  sheet.getRange(lastRow, 1, 1, 6).clearContent();
   return { success: true };
 }
 
@@ -321,34 +311,33 @@ function agregarJornadaManual(data) {
   const dia    = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'][fObj.getDay()];
   const nuevaFila = getUltimaFila(sheet) + 1;
 
-  sheet.getRange(nuevaFila, 1, 1, 7).setValues([[
+  sheet.getRange(nuevaFila, 1, 1, 6).setValues([[
     data.fecha,
     dia,
     data.entrada + ':00',
     data.salida  + ':00',
     '=IF(RC[-1]<RC[-2], 1+RC[-1]-RC[-2], RC[-1]-RC[-2])',
-    '✍️ Manual',
-    'N/A'
+    data.descripcion || ''
   ]]);
   sheet.getRange(nuevaFila, 5).setNumberFormat('[h]:mm:ss');
 
   // Reordenar por fecha
   if (sheet.getLastRow() > 2) {
-    sheet.getRange(2, 1, sheet.getLastRow() - 1, 7).sort({ column: 1, ascending: true });
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).sort({ column: 1, ascending: true });
   }
   return { success: true };
 }
 
 function guardarNota(rowNumber, nota) {
   const sheet = getSheet();
-  sheet.getRange(rowNumber, 8).setValue(nota || '');
+  sheet.getRange(rowNumber, 6).setValue(nota || '');
   return { success: true };
 }
 
 function eliminarRegistro(rowNumber) {
   const sheet = getSheet();
   if (rowNumber <= 1) throw new Error('Fila inválida');
-  sheet.getRange(rowNumber, 1, 1, 8).clearContent();
+  sheet.getRange(rowNumber, 1, 1, 6).clearContent();
   return { success: true };
 }
 

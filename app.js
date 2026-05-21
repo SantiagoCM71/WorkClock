@@ -481,13 +481,9 @@ function renderHistory(history) {
     card.className = 'shift-item-card';
     card.addEventListener('click', () => openEditModal(r.rowNumber, r.fecha, r.in24, r.out24));
 
-    const rangoClass = r.rango && r.rango.includes('En sitio') ? 'rango-ok' :
-                       r.rango && r.rango.includes('Fuera')    ? 'rango-out' :
-                       r.rango && r.rango.includes('Manual')   ? 'rango-manual' : 'rango-neutral';
-
     const diaLabel = r.dia ? ` — ${r.dia}` : '';
-    const notaText = r.nota ? r.nota : 'Sin notas';
-    const notaClass = r.nota ? '' : 'empty-note';
+    const descText = r.descripcion || 'Sin descripción';
+    const descClass = r.descripcion ? '' : 'empty-note';
 
     card.innerHTML = `
       <div class="shift-item-top">
@@ -499,13 +495,10 @@ function renderHistory(history) {
         <span>${r.entrada} — ${r.salida}</span>
       </div>
       <div class="shift-item-bottom">
-        <span class="shift-item-note ${notaClass}">${notaText}</span>
-        <div class="shift-item-badges">
-          <span class="shift-rango ${rangoClass}">${r.rango || '--'}</span>
-          <button class="btn-delete-shift" data-row="${r.rowNumber}" aria-label="Eliminar">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-          </button>
-        </div>
+        <span class="shift-item-note ${descClass}">${descText}</span>
+        <button class="btn-delete-shift" data-row="${r.rowNumber}" aria-label="Eliminar">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
       </div>
     `;
 
@@ -559,7 +552,8 @@ async function saveManual() {
   const data = {
     fecha: elManDate.value,
     entrada: elManIn.value,
-    salida: elManOut.value
+    salida: elManOut.value,
+    descripcion: $('manDesc') ? $('manDesc').value.trim() : ''
   };
   if (!data.fecha || !data.entrada || !data.salida) {
     showToast('Completa todos los campos');
