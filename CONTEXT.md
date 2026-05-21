@@ -176,19 +176,132 @@ Tapping the stats cards toggles between "hours mode" and "nómina mode" (shows p
 
 ---
 
-## Deploy Process (Frontend)
+---
+
+## Full Deploy Guide
+
+### Prerequisites (one-time setup)
 ```bash
-git add <files>
-git commit -m "message"
-git push origin main
-# GitHub Actions auto-deploys to GitHub Pages (~1-2 min)
+# Install clasp globally if not present
+npm install -g @google/clasp
+
+# Login to Google (opens browser)
+npx clasp login
+
+# Verify .clasp.json exists in project root (gitignored)
+# It should contain:
+# { "scriptId": "1E-9vJWmDWR-saHVokvP100rh1REekSy7jgAnEJGP06qbpR12Swg_JvoK", "rootDir": "." }
 ```
 
-## Backend Deploy Process
+---
+
+### Deploy Frontend → GitHub Pages
+
 ```bash
-npx clasp push --force
-# Then manually in Apps Script UI: new deployment version
+# Stage specific files (never use git add -A blindly)
+git add app.js index.html index.css sw.js
+
+# Commit
+git commit -m "describe what changed"
+
+# Push — GitHub Actions triggers automatically
+git push origin main
+
+# GitHub Actions deploys to Pages in ~1-2 minutes
+# Check status at: https://github.com/SantiagoCM71/WorkClock/actions
 ```
+
+**Workflow file:** `.github/workflows/deploy.yml`  
+Triggers on every push to `main`. No extra steps needed.
+
+---
+
+### Deploy Backend → Google Apps Script
+
+#### Step 1 — Push code via clasp
+```bash
+# From project root (where .clasp.json lives)
+npx clasp push --force
+
+# Expected output:
+# - Pushing files…
+# └─ appsscript.json
+# └─ google-script.js
+# Pushed 2 files.
+```
+
+#### Step 2 — Create new deployment version (MANUAL, required)
+> ⚠️ `clasp push` only uploads the code. To make it live, you must create a new version in the UI.
+
+1. Go to [script.google.com](https://script.google.com)
+2. Open project **WorkClock Pro**
+3. Click **"Implementar"** (top right, blue button)
+4. Select **"Administrar implementaciones"**
+5. Click the **pencil ✏️** on the active deployment
+6. In "Versión" dropdown → select **"Nueva versión"**
+7. Click **"Implementar"**
+8. ✅ Done — the URL **stays the same**, only the internal version number changes
+
+> **Why is this manual?** Google Apps Script requires a human to authorize new deployments. `clasp deploy` can automate it but requires extra OAuth scopes — not set up in this project.
+
+---
+
+### Deploy Both at Once (typical workflow)
+
+```bash
+# 1. Push backend
+npx clasp push --force
+
+# 2. Push frontend
+git add app.js index.html index.css sw.js google-script.js
+git commit -m "feat: describe what changed"
+git push origin main
+
+# 3. Then go to Apps Script UI and create new deployment version (see above)
+```
+
+---
+
+### Force Safari / PWA Cache Refresh
+
+When frontend files change but users see the old version:
+
+```bash
+# Bump the cache version in sw.js
+# Change: const CACHE_NAME = 'workclock-v3';
+# To:     const CACHE_NAME = 'workclock-v4';  (increment each time)
+
+git add sw.js
+git commit -m "Bump SW cache to vN to force update"
+git push origin main
+```
+
+Users then need to reload the app once (pull-to-refresh in Safari).
+
+---
+
+### Verify Everything Is Working
+
+```bash
+# Check GitHub Actions deploy status
+# https://github.com/SantiagoCM71/WorkClock/actions
+
+# Test the API directly (should return { status: 'ok' })
+curl "https://script.google.com/macros/s/AKfycbw1X-9KmoFH63FuUX6eNaKAD1YdIkORQ6In6g8veOLPTH3JhG27P6Kursw5YvrKSj-O/exec"
+```
+
+---
+
+### Key IDs (never change)
+
+| Thing | Value |
+|-------|-------|
+| GitHub repo | `https://github.com/SantiagoCM71/WorkClock` |
+| GitHub Pages URL | `https://santiagocm71.github.io/WorkClock/` |
+| Apps Script URL | `https://script.google.com/macros/s/AKfycbw1X-9KmoFH63FuUX6eNaKAD1YdIkORQ6In6g8veOLPTH3JhG27P6Kursw5YvrKSj-O/exec` |
+| Apps Script ID | `1E-9vJWmDWR-saHVokvP100rh1REekSy7jgAnEJGP06qbpR12Swg_JvoK` |
+| Google Sheet ID | `12iuJSea50wuVwWGFHfdCRzah7OEMInOstcOM8ByzLMk` |
+| Sheet name | `Hoja 1` |
 
 ---
 
