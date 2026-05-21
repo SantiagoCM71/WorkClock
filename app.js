@@ -20,6 +20,10 @@ let activeStartTime = JSON.parse(localStorage.getItem('activeStartTime')) || nul
 let editingRowNumber = null;
 let isActionBusy = false;    // bloquea el botón durante una acción
 let isRefreshing = false;    // bloquea refresh durante una acción
+let actionEpoch = 0;         // monotonic counter — stale async responses are discarded
+let historySeq = 0;          // sequence counter for updateHistory deduplication
+let refreshAbort = null;     // AbortController for in-flight refresh calls
+let actionAbort = null;      // AbortController for in-flight action calls
 
 // --- DOM ---
 const $ = id => document.getElementById(id);
@@ -119,21 +123,25 @@ function setConnBadge(status, text) {
 }
 
 // --- API ---
-async function apiCall(action, params = {}) {
+async function apiCall(action, params = {}, signal = null) {
   if (!webAppUrl) {
     showToast('Configura la URL en Ajustes');
     return null;
   }
   try {
-    const res = await fetch(webAppUrl, {
+    const fetchOpts = {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action, ...params })
-    });
+    };
+    if (signal) fetchOpts.signal = signal;
+    const res = await fetch(webAppUrl, fetchOpts);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     return data;
   } catch (e) {
+    // Silently ignore aborted requests — they are intentional
+    if (e.name === 'AbortError') return null;
     showToast('Error: ' + e.message);
     return null;
   }
@@ -141,15 +149,22 @@ async function apiCall(action, params = {}) {
 
 // --- REFRESH ---
 async function refreshAll() {
-  // No refrescar si hay una acción en curso (evita race conditions)
+  // Never refresh while an action is in progress
   if (isActionBusy) return;
-  if (isRefreshing) return;
+  // If a refresh is already running, abort it and start fresh
+  if (isRefreshing && refreshAbort) {
+    refreshAbort.abort();
+  }
   isRefreshing = true;
+  const myEpoch = actionEpoch; // snapshot — if an action starts while we await, discard results
+  refreshAbort = new AbortController();
+  const signal = refreshAbort.signal;
 
   try {
-    const state = await apiCall('getCurrentState');
-    // Volver a verificar — si handleAction arrancó mientras esperábamos, abortar
-    if (isActionBusy) return;
+    const state = await apiCall('getCurrentState', {}, signal);
+
+    // Discard stale response: an action started after we did
+    if (actionEpoch !== myEpoch || isActionBusy) return;
     if (!state) return;
 
     if (state.active) {
@@ -157,7 +172,10 @@ async function refreshAll() {
       elTimerStatus.textContent = 'Trabajando desde ' + state.startTime;
       elTimerStatus.style.color = 'var(--system-orange)';
       if (!activeStartTime) {
-        activeStartTime = Date.now();
+        // Attempt to reconstruct actual start time from backend
+        // state.startTimestamp is epoch ms if backend provides it;
+        // otherwise fall back to Date.now() (timer will be approximate)
+        activeStartTime = state.startTimestamp || Date.now();
         localStorage.setItem('activeStartTime', JSON.stringify(activeStartTime));
       }
       startTimerUI(activeStartTime);
@@ -171,24 +189,29 @@ async function refreshAll() {
       elTimerStatus.style.color = 'var(--text-secondary)';
     }
 
-    updateHistory();
+    // Await history so isRefreshing stays true until fully done
+    await updateHistory(signal, myEpoch);
   } finally {
     isRefreshing = false;
+    refreshAbort = null;
   }
 }
 
-function updateHistory() {
-  apiCall('getRecentHistory').then(data => {
-    if (!data) return;
-    appData = {
-      weekStr: data.semanaTotal || '0 min',
-      monthStr: data.mesTotal || '0 min',
-      weekSecs: data.semanaSegundos || 0,
-      monthSecs: data.mesSegundos || 0
-    };
-    renderStats();
-    renderHistory(data.history || []);
-  });
+async function updateHistory(signal = null, epoch = null) {
+  const seq = ++historySeq;
+  const data = await apiCall('getRecentHistory', {}, signal);
+  // Discard if a newer request was issued, or if an action started
+  if (historySeq !== seq) return;
+  if (epoch !== null && actionEpoch !== epoch) return;
+  if (!data) return;
+  appData = {
+    weekStr: data.semanaTotal || '0 min',
+    monthStr: data.mesTotal || '0 min',
+    weekSecs: data.semanaSegundos || 0,
+    monthSecs: data.mesSegundos || 0
+  };
+  renderStats();
+  renderHistory(data.history || []);
 }
 
 // --- STATS & NÓMINA ---
@@ -266,34 +289,55 @@ function formatHMS(ms) {
 
 // --- ACTION BUTTON (START/STOP) ---
 function lockButton() {
-  elBtnAction.style.pointerEvents = 'none';
+  elBtnAction.disabled = true;
+  elBtnAction.setAttribute('aria-disabled', 'true');
   elBtnAction.style.opacity = '0.4';
   elBtnAction.style.transform = 'scale(0.95)';
 }
 function unlockButton() {
-  elBtnAction.style.pointerEvents = '';
+  elBtnAction.disabled = false;
+  elBtnAction.removeAttribute('aria-disabled');
   elBtnAction.style.opacity = '';
   elBtnAction.style.transform = '';
 }
 
 async function handleAction() {
+  // Hard guard — if already processing, reject completely
   if (isActionBusy) return;
   isActionBusy = true;
+  actionEpoch++;               // invalidate all in-flight refresh/history responses
+  const myEpoch = actionEpoch; // capture for staleness checks
+
+  // Abort any in-flight refresh — it would apply stale data
+  if (refreshAbort) { refreshAbort.abort(); refreshAbort = null; }
+  isRefreshing = false;
+
+  // Create abort controller for this action
+  if (actionAbort) actionAbort.abort();
+  actionAbort = new AbortController();
+  const signal = actionAbort.signal;
+
   lockButton();
   if (navigator.vibrate) navigator.vibrate(15);
 
+  // Snapshot current state so we can restore on failure
+  const wasActive = !!activeStartTime;
+  const savedStartTime = activeStartTime;
+
   try {
-    if (!activeStartTime) {
+    if (!wasActive) {
       // ═══ INICIAR TURNO ═══
-      // Feedback visual INMEDIATO
       elBtnActionLabel.textContent = 'Registrando...';
       elTimerStatus.textContent = 'Conectando...';
       elTimerStatus.style.color = 'var(--system-orange)';
 
-      const r = await apiCall('registrarEntrada');
+      const r = await apiCall('registrarEntrada', {}, signal);
+
+      // If a newer action started while we awaited, bail out silently
+      if (actionEpoch !== myEpoch) return;
 
       if (r && r.success) {
-        activeStartTime = Date.now();
+        activeStartTime = r.startTimestamp || Date.now();
         localStorage.setItem('activeStartTime', JSON.stringify(activeStartTime));
         startTimerUI(activeStartTime);
         setActionButtonState(true);
@@ -301,43 +345,67 @@ async function handleAction() {
         elTimerStatus.style.color = 'var(--system-orange)';
         showToast('Turno iniciado');
       } else {
-        // Falló — restaurar UI limpia
+        // Failed — restore clean inactive UI
         setActionButtonState(false);
         elTimerDisplay.textContent = '00:00:00';
-        elTimerStatus.textContent = 'Error al iniciar';
+        elTimerStatus.textContent = r ? 'Error al iniciar' : 'Sin conexión';
         elTimerStatus.style.color = 'var(--text-secondary)';
       }
     } else {
       // ═══ TERMINAR TURNO ═══
-      // Feedback visual INMEDIATO — parar timer y cambiar botón YA
+      // Show "finalizing" feedback but do NOT clear activeStartTime yet
       clearInterval(timerInterval);
       timerInterval = null;
-      activeStartTime = null;
-      localStorage.removeItem('activeStartTime');
-      setActionButtonState(false);
-      elTimerDisplay.textContent = '00:00:00';
+      elBtnActionLabel.textContent = 'Finalizando...';
       elTimerStatus.textContent = 'Finalizando...';
       elTimerStatus.style.color = 'var(--text-secondary)';
 
-      const r = await apiCall('registrarSalida', { coords: null });
+      const r = await apiCall('registrarSalida', { coords: null }, signal);
+
+      if (actionEpoch !== myEpoch) return;
 
       if (r && r.success) {
+        // Only NOW clear the active state — backend confirmed
+        activeStartTime = null;
+        localStorage.removeItem('activeStartTime');
+        setActionButtonState(false);
+        elTimerDisplay.textContent = '00:00:00';
         elTimerStatus.textContent = 'Turno inactivo';
         showToast('Turno finalizado');
       } else {
-        elTimerStatus.textContent = 'Error al finalizar';
+        // Failed — RESTORE the active state so user can retry
+        activeStartTime = savedStartTime;
+        startTimerUI(activeStartTime);
+        setActionButtonState(true);
+        elTimerStatus.textContent = r ? 'Error al finalizar — reintenta' : 'Sin conexión — reintenta';
+        elTimerStatus.style.color = 'var(--system-orange)';
       }
     }
   } catch (err) {
+    if (err.name === 'AbortError') return;
+    // Restore previous state on unexpected error
+    if (wasActive) {
+      activeStartTime = savedStartTime;
+      startTimerUI(activeStartTime);
+      setActionButtonState(true);
+      elTimerStatus.textContent = 'Error — reintenta';
+      elTimerStatus.style.color = 'var(--system-orange)';
+    } else {
+      setActionButtonState(false);
+      elTimerDisplay.textContent = '00:00:00';
+      elTimerStatus.textContent = 'Error — reintenta';
+      elTimerStatus.style.color = 'var(--text-secondary)';
+    }
     showToast('Error de conexión');
   } finally {
-    // Desbloquear botón y sincronizar con backend
-    setTimeout(() => {
+    // Only unlock if this is still the current action
+    if (actionEpoch === myEpoch) {
       isActionBusy = false;
+      actionAbort = null;
       unlockButton();
-      // Sincronizar estado real con backend (corrige cualquier desfase)
+      // Sync with backend — no delay, no setTimeout
       refreshAll();
-    }, 1500);
+    }
   }
 }
 
@@ -545,7 +613,27 @@ function showToast(msg) {
 
 // --- EVENT LISTENERS ---
 function setupEventListeners() {
-  elBtnAction.addEventListener('click', handleAction);
+  // --- Action button: disable double-tap-to-zoom and prevent ghost clicks ---
+  // CSS touch-action should also be set on .action-btn: touch-action: manipulation;
+  elBtnAction.addEventListener('click', handleAction, { passive: false });
+
+  // Prevent iOS Safari from queuing extra touch events that become ghost clicks.
+  // A touchend on the action button calls preventDefault to suppress the
+  // synthesized click — handleAction is triggered by the first click only.
+  // We do NOT add a touchstart handler that calls handleAction because
+  // the 'click' event is the reliable cross-platform choice; instead we
+  // just prevent the duplicate synthesized click on iOS.
+  let actionTouchHandled = false;
+  elBtnAction.addEventListener('touchstart', () => {
+    actionTouchHandled = false;
+  }, { passive: true });
+  elBtnAction.addEventListener('touchend', (e) => {
+    if (actionTouchHandled) {
+      e.preventDefault(); // suppress duplicate click synthesis
+      return;
+    }
+    actionTouchHandled = true;
+  }, { passive: false });
 
   elStatsGrid.addEventListener('click', toggleMoneyMode);
 
@@ -586,6 +674,13 @@ function setupEventListeners() {
       setActionButtonState(false);
       showToast('Cache limpiado');
       if (webAppUrl) refreshAll();
+    }
+  });
+
+  // Resync with backend when tab becomes visible again (handles sleep/background)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && webAppUrl && !isActionBusy) {
+      refreshAll();
     }
   });
 }

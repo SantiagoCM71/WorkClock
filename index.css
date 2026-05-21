@@ -200,6 +200,10 @@ body {
   z-index: 2;
   transition: all var(--transition-normal);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  touch-action: manipulation;  /* disable double-tap-to-zoom on iOS Safari */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .btn-label {
