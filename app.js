@@ -17,7 +17,8 @@ let appData = { weekStr: '--', monthStr: '--', weekSecs: 0, monthSecs: 0 };
 let timerInterval = null;
 let activeStartTime = JSON.parse(localStorage.getItem('activeStartTime')) || null;
 let editingRowNumber = null;
-let isActionBusy = false;
+let isActionBusy = false;    // bloquea el botón durante una acción
+let isRefreshing = false;    // bloquea refresh durante una acción
 
 // --- DOM ---
 const $ = id => document.getElementById(id);
@@ -138,21 +139,28 @@ async function apiCall(action, params = {}) {
 }
 
 // --- REFRESH ---
-function refreshAll() {
-  apiCall('getCurrentState').then(state => {
+async function refreshAll() {
+  // No refrescar si hay una acción en curso (evita race conditions)
+  if (isActionBusy) return;
+  if (isRefreshing) return;
+  isRefreshing = true;
+
+  try {
+    const state = await apiCall('getCurrentState');
+    // Volver a verificar — si handleAction arrancó mientras esperábamos, abortar
+    if (isActionBusy) return;
     if (!state) return;
+
     if (state.active) {
       setActionButtonState(true);
       elTimerStatus.textContent = 'Trabajando desde ' + state.startTime;
       elTimerStatus.style.color = 'var(--system-orange)';
-      // Si no hay timer local, crear uno basado en ahora (aproximado)
       if (!activeStartTime) {
         activeStartTime = Date.now();
         localStorage.setItem('activeStartTime', JSON.stringify(activeStartTime));
       }
       startTimerUI(activeStartTime);
     } else {
-      // Backend dice NO activo — limpiar cualquier estado local fantasma
       if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
       activeStartTime = null;
       localStorage.removeItem('activeStartTime');
@@ -161,8 +169,11 @@ function refreshAll() {
       elTimerStatus.textContent = 'Turno inactivo';
       elTimerStatus.style.color = 'var(--text-secondary)';
     }
-  });
-  updateHistory();
+
+    updateHistory();
+  } finally {
+    isRefreshing = false;
+  }
 }
 
 function updateHistory() {
@@ -254,19 +265,36 @@ function formatHMS(ms) {
 
 // --- ACTION BUTTON (START/STOP) ---
 async function handleAction() {
-  // Bloquear doble-tap
+  // Bloquear doble-tap y acciones concurrentes
   if (isActionBusy) return;
   isActionBusy = true;
+
+  // Deshabilitar el botón visualmente Y con pointer-events
   elBtnAction.style.pointerEvents = 'none';
-  elBtnAction.style.opacity = '0.5';
+  elBtnAction.style.opacity = '0.4';
+  elBtnAction.style.transform = 'scale(0.95)';
 
   if (navigator.vibrate) navigator.vibrate(15);
 
   try {
-    if (!activeStartTime) {
-      // --- INICIAR TURNO ---
+    // Paso 1: CONSULTAR BACKEND para saber el estado REAL
+    // (no confiar en activeStartTime local — puede estar desincronizado)
+    const state = await apiCall('getCurrentState');
+    if (!state) {
+      showToast('Sin conexión al servidor');
+      return;
+    }
+
+    if (!state.active) {
+      // ═══ BACKEND DICE: NO HAY TURNO ACTIVO → INICIAR ═══
+      // Limpiar cualquier estado local fantasma primero
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      activeStartTime = null;
+      localStorage.removeItem('activeStartTime');
+
       elTimerStatus.textContent = 'Registrando entrada...';
       elTimerStatus.style.color = 'var(--system-orange)';
+      elBtnActionLabel.textContent = '...';
 
       const r = await apiCall('registrarEntrada');
       if (r && r.success) {
@@ -274,18 +302,22 @@ async function handleAction() {
         localStorage.setItem('activeStartTime', JSON.stringify(activeStartTime));
         startTimerUI(activeStartTime);
         setActionButtonState(true);
+        elTimerStatus.textContent = 'Turno activo';
+        elTimerStatus.style.color = 'var(--system-orange)';
         showToast('Turno iniciado');
         updateHistory();
       } else {
+        setActionButtonState(false);
+        elTimerDisplay.textContent = '00:00:00';
         elTimerStatus.textContent = 'Error al iniciar';
         elTimerStatus.style.color = 'var(--text-secondary)';
       }
     } else {
-      // --- TERMINAR TURNO ---
-      clearInterval(timerInterval);
-      timerInterval = null;
+      // ═══ BACKEND DICE: HAY TURNO ACTIVO → TERMINAR ═══
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
       elTimerStatus.textContent = 'Finalizando turno...';
       elTimerStatus.style.color = 'var(--text-secondary)';
+      elBtnActionLabel.textContent = '...';
 
       const r = await apiCall('registrarSalida', { coords: null });
       activeStartTime = null;
@@ -296,20 +328,26 @@ async function handleAction() {
         setActionButtonState(false);
         elTimerDisplay.textContent = '00:00:00';
         elTimerStatus.textContent = 'Turno inactivo';
-        refreshAll();
+        // Esperar un momento antes de refrescar para que Sheets procese
+        await new Promise(resolve => setTimeout(resolve, 500));
+        updateHistory();
       } else {
+        setActionButtonState(false);
         elTimerDisplay.textContent = '00:00:00';
         elTimerStatus.textContent = 'Error al finalizar';
-        setActionButtonState(false);
       }
     }
+  } catch (err) {
+    showToast('Error inesperado');
+    console.error(err);
   } finally {
-    // Desbloquear después de un delay mínimo para evitar rebotes
+    // Desbloquear después de 2.5s — suficiente para que Google Sheets procese
     setTimeout(() => {
       isActionBusy = false;
       elBtnAction.style.pointerEvents = '';
       elBtnAction.style.opacity = '';
-    }, 1500);
+      elBtnAction.style.transform = '';
+    }, 2500);
   }
 }
 

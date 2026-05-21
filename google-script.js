@@ -109,7 +109,7 @@ function getCurrentState() {
   const lastRow = getUltimaFila(sheet);
   if (lastRow <= 1) return { active: false };
 
-  const numRows = Math.min(lastRow - 1, 5);
+  const numRows = Math.min(lastRow - 1, 15);
   const startRow = lastRow - numRows + 1;
   const values = sheet.getRange(startRow, 1, numRows, 4).getValues();
   const tz = Session.getScriptTimeZone();
@@ -207,7 +207,22 @@ function registrarEntrada() {
   const sheet = getSheet();
   const ahora = new Date();
   const tz = Session.getScriptTimeZone();
-  const nuevaFila = getUltimaFila(sheet) + 1;
+
+  // PROTECCIÓN: verificar que no haya ya un turno activo antes de crear uno nuevo
+  const lastRow = getUltimaFila(sheet);
+  if (lastRow > 1) {
+    const numCheck = Math.min(lastRow - 1, 10);
+    const startCheck = lastRow - numCheck + 1;
+    const vals = sheet.getRange(startCheck, 1, numCheck, 4).getValues();
+    for (let i = vals.length - 1; i >= 0; i--) {
+      if (vals[i][2] !== '' && (!vals[i][3] || vals[i][3] === '')) {
+        // Ya hay turno activo — no crear duplicado
+        return { success: true, message: 'Turno ya activo' };
+      }
+    }
+  }
+
+  const nuevaFila = lastRow + 1;
   const dias = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 
   sheet.getRange(nuevaFila, 1, 1, 7).setValues([[
@@ -227,23 +242,25 @@ function registrarSalida(coords) {
   const lastRow = getUltimaFila(sheet);
   if (lastRow <= 1) throw new Error('No hay turno activo');
 
-  const numRows = Math.min(lastRow - 1, 5);
+  // Buscar en TODAS las filas recientes (no solo 5) para encontrar turnos abiertos
+  const numRows = Math.min(lastRow - 1, 30);
   const startRow = lastRow - numRows + 1;
   const values = sheet.getRange(startRow, 1, numRows, 4).getValues();
   const tz = Session.getScriptTimeZone();
+  const horaSalida = Utilities.formatDate(new Date(), tz, 'HH:mm:ss');
+  const coordStr   = coords ? `${coords.lat},${coords.lng}` : 'N/A';
+  let rango = 'Sin GPS';
+  if (coords && coords.lat) {
+    const dist = calcularDistancia(coords.lat, coords.lng);
+    rango = dist <= RADIO_METROS ? '✅ En sitio' : '🚩 Fuera';
+  }
 
+  // Cerrar TODOS los turnos abiertos (por si hay duplicados fantasma)
+  let cerrados = 0;
   for (let i = values.length - 1; i >= 0; i--) {
     const row = values[i];
     if (row[2] !== '' && (!row[3] || row[3] === '')) {
       const rowIndex = startRow + i;
-      let rango = 'Sin GPS';
-      if (coords && coords.lat) {
-        const dist = calcularDistancia(coords.lat, coords.lng);
-        rango = dist <= RADIO_METROS ? '✅ En sitio' : '🚩 Fuera';
-      }
-      const horaSalida = Utilities.formatDate(new Date(), tz, 'HH:mm:ss');
-      const coordStr   = coords ? `${coords.lat},${coords.lng}` : 'N/A';
-
       sheet.getRange(rowIndex, 4, 1, 4).setValues([[
         horaSalida,
         '=IF(RC[-1]<RC[-2], 1+RC[-1]-RC[-2], RC[-1]-RC[-2])',
@@ -251,10 +268,12 @@ function registrarSalida(coords) {
         coordStr
       ]]);
       sheet.getRange(rowIndex, 5).setNumberFormat('[h]:mm:ss');
-      return { success: true };
+      cerrados++;
     }
   }
-  throw new Error('No hay turno activo');
+
+  if (cerrados === 0) throw new Error('No hay turno activo');
+  return { success: true, cerrados: cerrados };
 }
 
 function eliminarUltimoRegistro() {
