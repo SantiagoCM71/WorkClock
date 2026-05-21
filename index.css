@@ -531,7 +531,12 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 70%;
+  max-width: 60%;
+}
+
+.shift-item-note.empty-note {
+  color: var(--text-tertiary);
+  opacity: 0.6;
 }
 
 .shift-item-badges {

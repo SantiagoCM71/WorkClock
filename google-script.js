@@ -10,7 +10,7 @@
  * 4. Copia la URL /exec y pégala en Settings de la app
  *
  * ESTRUCTURA DE LA HOJA "Horas Laboradas":
- * A: Fecha | B: Dia | C: Entrada | D: Salida | E: Horas | F: Rango | G: Ubicacion
+ * A: Fecha | B: Dia | C: Entrada | D: Salida | E: Horas | F: Rango | G: Ubicacion | H: Notas
  */
 
 const SPREADSHEET_ID = '12iuJSea50wuVwWGFHfdCRzah7OEMInOstcOM8ByzLMk';
@@ -36,6 +36,8 @@ function doPost(e) {
     else if (action === 'eliminarUltimoRegistro') result = eliminarUltimoRegistro();
     else if (action === 'actualizarRegistro')     result = actualizarRegistro(params.rowNumber, params.nuevaEntrada, params.nuevaSalida);
     else if (action === 'agregarJornadaManual')   result = agregarJornadaManual(params.data);
+    else if (action === 'guardarNota')            result = guardarNota(params.rowNumber, params.nota);
+    else if (action === 'eliminarRegistro')       result = eliminarRegistro(params.rowNumber);
     else if (action === 'iniciarNuevoMesApp')     result = iniciarNuevoMesApp();
     else throw new Error('Acción desconocida: ' + action);
 
@@ -178,8 +180,9 @@ function getFullState() {
       }
 
       historyData.push({
-        rowNumber: i + 1, fecha, entrada, salida, in24, out24, horas,
-        rango: row[5] || ''
+        rowNumber: i + 1, fecha, dia: row[1] || '', entrada, salida, in24, out24, horas,
+        rango: row[5] || '',
+        nota: row[7] || ''
       });
     }
   }
@@ -268,7 +271,20 @@ function registrarSalida(coords) {
   }
 
   if (cerrados === 0) throw new Error('No hay turno activo');
-  return { success: true, cerrados: cerrados };
+
+  // Return shift times for the finish modal
+  let entradaStr = '', salidaStr = horaSalida;
+  // Find the entry time from the last closed row
+  for (let i = values.length - 1; i >= 0; i--) {
+    if (values[i][2] !== '') {
+      entradaStr = values[i][2] instanceof Date
+        ? Utilities.formatDate(values[i][2], tz, 'HH:mm:ss')
+        : String(values[i][2]);
+      break;
+    }
+  }
+
+  return { success: true, cerrados, entrada: entradaStr, salida: salidaStr, lastRow: lastRow };
 }
 
 function eliminarUltimoRegistro() {
@@ -320,6 +336,19 @@ function agregarJornadaManual(data) {
   if (sheet.getLastRow() > 2) {
     sheet.getRange(2, 1, sheet.getLastRow() - 1, 7).sort({ column: 1, ascending: true });
   }
+  return { success: true };
+}
+
+function guardarNota(rowNumber, nota) {
+  const sheet = getSheet();
+  sheet.getRange(rowNumber, 8).setValue(nota || '');
+  return { success: true };
+}
+
+function eliminarRegistro(rowNumber) {
+  const sheet = getSheet();
+  if (rowNumber <= 1) throw new Error('Fila inválida');
+  sheet.getRange(rowNumber, 1, 1, 8).clearContent();
   return { success: true };
 }
 

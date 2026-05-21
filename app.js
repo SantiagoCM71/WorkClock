@@ -73,8 +73,18 @@ const elConnStatus       = $('connectionStatus');
 const elBtnExportCSV     = $('btnExportCSV');
 const elBtnResetLocal    = $('btnResetLocal');
 
+const elFinishModal    = $('finishModal');
+const elFinishNote     = $('finishNote');
+const elFinishStart    = $('finishStart');
+const elFinishEnd      = $('finishEnd');
+const elFinishTotal    = $('finishTotal');
+const elBtnFinishSkip  = $('btnFinishSkip');
+const elBtnFinishSave  = $('btnFinishSave');
+
 const elToast        = $('toastNotification');
 const elToastMessage = $('toastMessage');
+
+let finishRowNumber = null; // row to attach note to after finishing
 
 // --- INIT ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -406,7 +416,15 @@ async function handleAction() {
         setActionButtonState(false);
         elTimerDisplay.textContent = '00:00:00';
         elTimerStatus.textContent = 'Turno inactivo';
-        showToast('Turno finalizado');
+
+        // Show finish modal with shift summary
+        finishRowNumber = r.lastRow || null;
+        elFinishStart.textContent = r.entrada || '--';
+        elFinishEnd.textContent = r.salida || '--';
+        // Calculate total from entry/exit strings
+        elFinishTotal.textContent = calcTotalFromTimes(r.entrada, r.salida);
+        elFinishNote.value = '';
+        openModal(elFinishModal);
       } else {
         // Failed — RESTORE the active state so user can retry
         activeStartTime = savedStartTime;
@@ -467,9 +485,13 @@ function renderHistory(history) {
                        r.rango && r.rango.includes('Fuera')    ? 'rango-out' :
                        r.rango && r.rango.includes('Manual')   ? 'rango-manual' : 'rango-neutral';
 
+    const diaLabel = r.dia ? ` — ${r.dia}` : '';
+    const notaText = r.nota ? r.nota : 'Sin notas';
+    const notaClass = r.nota ? '' : 'empty-note';
+
     card.innerHTML = `
       <div class="shift-item-top">
-        <span class="shift-item-date">${r.fecha}</span>
+        <span class="shift-item-date">${r.fecha}${diaLabel}</span>
         <span class="shift-item-duration">${r.horas}</span>
       </div>
       <div class="shift-item-times">
@@ -477,10 +499,18 @@ function renderHistory(history) {
         <span>${r.entrada} — ${r.salida}</span>
       </div>
       <div class="shift-item-bottom">
-        <span class="shift-rango ${rangoClass}">${r.rango || '--'}</span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        <span class="shift-item-note ${notaClass}">${notaText}</span>
+        <div class="shift-item-badges">
+          <span class="shift-rango ${rangoClass}">${r.rango || '--'}</span>
+          <button class="btn-delete-shift" data-row="${r.rowNumber}" aria-label="Eliminar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
+        </div>
       </div>
     `;
+
+    // Attach delete handler
+    card.querySelector('.btn-delete-shift').addEventListener('click', (e) => handleDeleteShift(r.rowNumber, e));
 
     elHistoryList.appendChild(card);
   });
@@ -626,6 +656,48 @@ function exportCSV() {
   });
 }
 
+// --- FINISH MODAL HELPERS ---
+function calcTotalFromTimes(entrada, salida) {
+  if (!entrada || !salida || entrada === '--' || salida === '--') return '0m';
+  const toSecs = t => { const p = t.split(':'); return (+p[0])*3600 + (+p[1])*60 + (+(p[2]||0)); };
+  let diff = toSecs(salida) - toSecs(entrada);
+  if (diff < 0) diff += 86400; // overnight shift
+  const h = Math.floor(diff / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+async function handleFinishSave() {
+  if (!finishRowNumber) { closeModal(elFinishModal); refreshAll(); return; }
+  const nota = elFinishNote.value.trim();
+  elBtnFinishSave.textContent = 'Guardando...';
+  elBtnFinishSave.disabled = true;
+  if (nota) await apiCall('guardarNota', { rowNumber: finishRowNumber, nota });
+  elBtnFinishSave.textContent = 'Guardar Turno';
+  elBtnFinishSave.disabled = false;
+  finishRowNumber = null;
+  closeModal(elFinishModal);
+  showToast('Turno guardado');
+  refreshAll();
+}
+
+function handleFinishSkip() {
+  finishRowNumber = null;
+  closeModal(elFinishModal);
+  showToast('Turno finalizado');
+  refreshAll();
+}
+
+async function handleDeleteShift(rowNumber, e) {
+  e.stopPropagation(); // don't open edit modal
+  if (!confirm('¿Eliminar este registro?')) return;
+  const r = await apiCall('eliminarRegistro', { rowNumber });
+  if (r && r.success) {
+    showToast('Registro eliminado');
+    refreshAll();
+  }
+}
+
 // --- MODALS ---
 function openModal(modal) {
   modal.classList.add('active');
@@ -683,6 +755,10 @@ function setupEventListeners() {
   elBtnCancelMan.addEventListener('click', () => closeModal(elManualModal));
   elBtnSaveMan.addEventListener('click', saveManual);
   elManualModal.addEventListener('click', e => { if (e.target === elManualModal) closeModal(elManualModal); });
+
+  elBtnFinishSave.addEventListener('click', handleFinishSave);
+  elBtnFinishSkip.addEventListener('click', handleFinishSkip);
+  elFinishModal.addEventListener('click', e => { if (e.target === elFinishModal) handleFinishSkip(); });
 
   elBtnSettings.addEventListener('click', () => openModal(elSettingsModal));
   elBtnCloseSettings.addEventListener('click', () => {

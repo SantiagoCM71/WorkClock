@@ -194,6 +194,29 @@
     </div>
   </div>
 
+  <!-- FINISH SHIFT MODAL -->
+  <div class="modal-overlay" id="finishModal">
+    <div class="ios-modal">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <h2>Turno Finalizado</h2>
+        <p>¿Quieres añadir una nota o comentario sobre lo que trabajaste hoy?</p>
+      </div>
+      <div class="modal-body">
+        <textarea id="finishNote" rows="3" placeholder="Ej. Desarrollo de landing page, soporte técnico, reunión de equipo..."></textarea>
+        <div class="shift-summary-preview">
+          <div class="preview-item"><span>Inicio:</span> <strong id="finishStart">--</strong></div>
+          <div class="preview-item"><span>Fin:</span> <strong id="finishEnd">--</strong></div>
+          <div class="preview-item"><span>Total:</span> <strong class="highlight-text" id="finishTotal">--</strong></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="secondary-button" id="btnFinishSkip">Saltar</button>
+        <button class="primary-button" id="btnFinishSave">Guardar Turno</button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div class="ios-toast" id="toastNotification">
     <div class="toast-content">
