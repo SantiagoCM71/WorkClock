@@ -221,13 +221,17 @@ Triggers on every push to `main`. No extra steps needed.
 #### Step 1 — Push code via clasp
 ```bash
 # From project root (where .clasp.json lives)
-npx clasp push --force
+npx clasp push
 
 # Expected output:
 # - Pushing files…
 # └─ appsscript.json
 # └─ google-script.js
 # Pushed 2 files.
+
+# Use --force only if clasp says "No files to push" but you know there are changes
+# (can happen on Windows due to CRLF/LF line ending detection issues)
+# npx clasp push --force
 ```
 
 #### Step 2 — Create new deployment version (MANUAL, required)
