@@ -4,6 +4,17 @@
 
 ## [Current] — 2026-05-22
 
+### Changed
+- **Removed manual API URL configuration** — URL is now hardcoded, no user setup needed
+- **Auto-connection test on app load** — badge in settings shows "Conectado" / "Sin conexión" automatically
+- Settings modal simplified: removed URL input + "Probar" button
+- Empty state text updated ("Inicia tu primer turno" instead of "Configura la URL")
+- Service Worker cache bumped to v6
+
+---
+
+## [2026-05-22]
+
 ### Added
 - **Attendance calendar** — GitHub-style grid showing worked days
   - Green = worked, dark green = 6+ hours, orange pulsing = active shift

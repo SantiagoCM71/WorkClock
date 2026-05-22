@@ -12,7 +12,7 @@ const NOMINA = {
 
 // --- ESTADO ---
 const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbydh837wK89_56-YQ7eSVMC-fhrm8d0aLgKrf94MvEhjzonf1a6JYuArf41SWR38OoS/exec';
-let webAppUrl = localStorage.getItem('webAppUrl') || DEFAULT_API_URL;
+let webAppUrl = DEFAULT_API_URL;
 let isMoneyMode = false;
 let appData = { weekStr: '--', monthStr: '--', weekSecs: 0, monthSecs: 0 };
 let timerInterval = null;
@@ -67,8 +67,6 @@ const elBtnSaveMan     = $('btnSaveManual');
 const elSettingsModal    = $('settingsModal');
 const elBtnSettings      = $('btnSettings');
 const elBtnCloseSettings = $('btnCloseSettings');
-const elInputUrl         = $('inputSheetUrl');
-const elBtnTestConn      = $('btnTestConnection');
 const elConnStatus       = $('connectionStatus');
 const elBtnExportCSV     = $('btnExportCSV');
 const elBtnResetLocal    = $('btnResetLocal');
@@ -96,11 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderFromCache();
 
   // 2) Then sync with backend in background
-  if (webAppUrl) {
-    refreshAll();
-  } else {
-    checkActiveShiftState();
-  }
+  refreshAll();
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -164,11 +158,22 @@ function setupGreetingAndDate() {
 
 // --- SETTINGS ---
 function loadSettings() {
-  if (webAppUrl) {
-    elInputUrl.value = webAppUrl;
-    setConnBadge('connected', 'Configurado');
-  } else {
-    setConnBadge('disconnected', 'No Configurado');
+  // Auto-test connection on load
+  autoTestConnection();
+}
+
+async function autoTestConnection() {
+  setConnBadge('testing', 'Verificando...');
+  try {
+    const res = await fetch(webAppUrl, { method: 'GET', mode: 'cors' });
+    const data = await res.json();
+    if (data && (data.status === 'ok' || data.status === 'success')) {
+      setConnBadge('connected', 'Conectado');
+    } else {
+      setConnBadge('disconnected', 'Sin respuesta');
+    }
+  } catch {
+    setConnBadge('disconnected', 'Sin conexión');
   }
 }
 
@@ -183,10 +188,6 @@ function setConnBadge(status, text) {
 
 // --- API ---
 async function apiCall(action, params = {}, signal = null) {
-  if (!webAppUrl) {
-    showToast('Configura la URL en Ajustes');
-    return null;
-  }
   try {
     const fetchOpts = {
       method: 'POST',
@@ -701,29 +702,7 @@ async function handleNuevoMes() {
 }
 
 // --- TEST CONNECTION ---
-async function testConnection() {
-  const url = elInputUrl.value.trim();
-  if (!url) { showToast('Introduce una URL'); return; }
-
-  setConnBadge('testing', 'Probando...');
-  elBtnTestConn.disabled = true;
-
-  try {
-    const res = await fetch(url, { method: 'GET', mode: 'cors' });
-    const data = await res.json();
-    if (data && (data.status === 'ok' || data.status === 'success')) {
-      setConnBadge('connected', 'Conectado');
-      showToast('Conexión exitosa');
-    } else {
-      throw new Error();
-    }
-  } catch {
-    setConnBadge('disconnected', 'Error');
-    showToast('Error de conexión');
-  } finally {
-    elBtnTestConn.disabled = false;
-  }
-}
+// testConnection removed — auto-test on load via autoTestConnection()
 
 // --- EXPORT CSV (from current history cache) ---
 function exportCSV() {
@@ -855,19 +834,10 @@ function setupEventListeners() {
 
   elBtnSettings.addEventListener('click', () => openModal(elSettingsModal));
   elBtnCloseSettings.addEventListener('click', () => {
-    const newUrl = elInputUrl.value.trim();
-    if (newUrl !== webAppUrl) {
-      webAppUrl = newUrl;
-      localStorage.setItem('webAppUrl', webAppUrl);
-      showToast(webAppUrl ? 'URL guardada' : 'URL eliminada');
-      loadSettings();
-      if (webAppUrl) refreshAll();
-    }
     closeModal(elSettingsModal);
   });
   elSettingsModal.addEventListener('click', e => { if (e.target === elSettingsModal) elBtnCloseSettings.click(); });
 
-  elBtnTestConn.addEventListener('click', testConnection);
   elBtnExportCSV.addEventListener('click', exportCSV);
   elBtnResetLocal.addEventListener('click', () => {
     if (confirm('¿Limpiar cache local? Los datos en Google Sheets no se tocan.')) {
@@ -877,13 +847,13 @@ function setupEventListeners() {
       elTimerDisplay.textContent = '00:00:00';
       setActionButtonState(false);
       showToast('Cache limpiado');
-      if (webAppUrl) refreshAll();
+      refreshAll();
     }
   });
 
   // Resync with backend when tab becomes visible again (handles sleep/background)
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && webAppUrl && !isActionBusy) {
+    if (document.visibilityState === 'visible' && !isActionBusy) {
       refreshAll();
     }
   });
