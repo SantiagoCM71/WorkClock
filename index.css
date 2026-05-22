@@ -131,7 +131,16 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+}
+
+/* Hero screen — fills exactly the visible viewport minus header */
+.hero-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - env(safe-area-inset-top, 24px) - env(safe-area-inset-bottom, 16px) - 80px);
+  min-height: calc(100dvh - env(safe-area-inset-top, 24px) - env(safe-area-inset-bottom, 16px) - 80px);
+  gap: 12px;
 }
 
 .date-badge {
@@ -155,7 +164,9 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8px 0 0;
+  padding: 4px 0 0;
+  flex: 1;
+  min-height: 0;
 }
 
 .timer-display {
@@ -171,7 +182,7 @@ body {
 .timer-status {
   font-size: 0.9rem;
   color: var(--text-secondary);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   font-weight: 500;
   transition: color var(--transition-fast);
 }

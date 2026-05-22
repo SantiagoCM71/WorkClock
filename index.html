@@ -37,32 +37,49 @@
     <!-- Main Content -->
     <main class="main-content">
 
-      <div class="date-badge" id="currentDateBadge">Martes, 20 de Mayo</div>
+      <!-- Hero Screen — fits exactly in viewport, no scroll needed -->
+      <div class="hero-screen">
+        <div class="date-badge" id="currentDateBadge">Martes, 20 de Mayo</div>
 
-      <!-- Timer -->
-      <div class="timer-section">
-        <div class="timer-display" id="timerDisplay">00:00:00</div>
-        <div class="timer-status" id="timerStatusLabel">Turno inactivo</div>
-        <div class="action-btn-wrapper">
-          <button class="action-btn state-start" id="btnAction">
-            <span class="btn-ripple"></span>
-            <span class="btn-ripple-two"></span>
-            <span class="btn-label" id="btnActionLabel">Iniciar Turno</span>
-          </button>
+        <!-- Timer -->
+        <div class="timer-section">
+          <div class="timer-display" id="timerDisplay">00:00:00</div>
+          <div class="timer-status" id="timerStatusLabel">Turno inactivo</div>
+          <div class="action-btn-wrapper">
+            <button class="action-btn state-start" id="btnAction">
+              <span class="btn-ripple"></span>
+              <span class="btn-ripple-two"></span>
+              <span class="btn-label" id="btnActionLabel">Iniciar Turno</span>
+            </button>
+          </div>
         </div>
+
+        <!-- Stats (tappable for nómina toggle) -->
+        <section class="stats-grid" id="statsGrid">
+          <div class="stat-card" id="cardWeek">
+            <span class="stat-label" id="lblWeek">Esta Semana</span>
+            <span class="stat-value" id="valWeek">--</span>
+          </div>
+          <div class="stat-card" id="cardMonth">
+            <span class="stat-label" id="lblMonth">Este Mes</span>
+            <span class="stat-value" id="valMonth">--</span>
+          </div>
+        </section>
+
+        <!-- Action Row -->
+        <section class="action-row">
+          <button class="action-row-btn btn-add-shift" id="btnAddManual">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Agregar Jornada
+          </button>
+          <button class="action-row-btn btn-new-month" id="btnNuevoMes">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            Nuevo Mes
+          </button>
+        </section>
       </div>
 
-      <!-- Stats (tappable for nómina toggle) -->
-      <section class="stats-grid" id="statsGrid">
-        <div class="stat-card" id="cardWeek">
-          <span class="stat-label" id="lblWeek">Esta Semana</span>
-          <span class="stat-value" id="valWeek">--</span>
-        </div>
-        <div class="stat-card" id="cardMonth">
-          <span class="stat-label" id="lblMonth">Este Mes</span>
-          <span class="stat-value" id="valMonth">--</span>
-        </div>
-      </section>
+      <!-- Below the fold — visible on scroll -->
 
       <!-- Attendance Calendar -->
       <section class="calendar-section" id="calendarSection">
@@ -76,18 +93,6 @@
           <span class="cal-header">S</span>
           <span class="cal-header">D</span>
         </div>
-      </section>
-
-      <!-- Action Row -->
-      <section class="action-row">
-        <button class="action-row-btn btn-add-shift" id="btnAddManual">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          Agregar Jornada
-        </button>
-        <button class="action-row-btn btn-new-month" id="btnNuevoMes">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-          Nuevo Mes
-        </button>
       </section>
 
       <!-- History -->
