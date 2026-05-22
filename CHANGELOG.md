@@ -5,6 +5,16 @@
 ## [Current] — 2026-05-22
 
 ### Added
+- **Attendance calendar** — GitHub-style grid showing worked days
+  - Green = worked, dark green = 6+ hours, orange pulsing = active shift
+  - Blue ring = today, dimmed = future days
+  - Tap a day to see hours worked (tooltip)
+  - Data comes from `diasMes` field in `getFullState`
+- **Pro animations**
+  - Burst effect on successful start (green) / stop (orange)
+  - State transition animation (scale bounce) on button change
+  - Staggered slide-in for history cards (each card delayed 50ms)
+  - Pop-in animation for calendar day cells
 - **Auto-deploy script** (`npm run deploy:auto`) — single command deploys backend + frontend
   - Validates syntax, pushes to Apps Script, creates version + deployment
   - Auto-updates `DEFAULT_API_URL` in app.js with new deployment URL
@@ -15,6 +25,7 @@
 ### Changed
 - Sheet columns simplified: removed Rango + Ubicacion, replaced with Descripcion (col F)
 - `deploy-auto.ps1` rewritten — removed Telegram logic, added GitHub Pages integration
+- Service Worker cache bumped to v4
 
 ---
 
