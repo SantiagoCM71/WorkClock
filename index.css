@@ -140,7 +140,7 @@ body {
   flex-direction: column;
   min-height: calc(100vh - env(safe-area-inset-top, 24px) - env(safe-area-inset-bottom, 16px) - 80px);
   min-height: calc(100dvh - env(safe-area-inset-top, 24px) - env(safe-area-inset-bottom, 16px) - 80px);
-  gap: 14px;
+  gap: 18px;
   justify-content: center;
 }
 
@@ -170,18 +170,18 @@ body {
 
 .timer-display {
   font-family: var(--font-mono);
-  font-size: 3.5rem;
+  font-size: 4rem;
   font-weight: 600;
   letter-spacing: -2px;
   color: var(--text-primary);
   text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .timer-status {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
-  margin-bottom: 12px;
+  margin-bottom: 20px;
   font-weight: 500;
   transition: color var(--transition-fast);
 }
@@ -189,16 +189,16 @@ body {
 /* Botón Circular Tactil */
 .action-btn-wrapper {
   position: relative;
-  width: 175px;
-  height: 175px;
+  width: 195px;
+  height: 195px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .action-btn {
-  width: 160px;
-  height: 160px;
+  width: 175px;
+  height: 175px;
   border-radius: 50%;
   border: none;
   outline: none;
@@ -217,7 +217,7 @@ body {
 }
 
 .btn-label {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #FFFFFF;
   letter-spacing: -0.2px;
@@ -1037,10 +1037,10 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 14px 14px;
+  gap: 8px;
+  padding: 16px 16px;
   border-radius: var(--radius-ios-md);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-fast);
