@@ -97,7 +97,22 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshAll();
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      // Force check for SW updates every time the app opens
+      reg.update().catch(() => {});
+      // Auto-activate new SW without waiting for all tabs to close
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        if (newSW) {
+          newSW.addEventListener('statechange', () => {
+            if (newSW.state === 'activated') {
+              // New SW activated — reload to get fresh assets
+              window.location.reload();
+            }
+          });
+        }
+      });
+    }).catch(() => {});
   }
 });
 
