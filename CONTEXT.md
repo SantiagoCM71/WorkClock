@@ -1,6 +1,6 @@
 # WorkClock Pro — Project Context
 
-> Last updated: 2026-05-20  
+> Last updated: 2026-05-22  
 > For any agent (Codex, Antigravity, Claude, etc.) picking up this project.
 
 ---
@@ -24,7 +24,7 @@ Data is stored in a Google Sheet. No server, no database — Apps Script is the 
 | Hosting | GitHub Pages (auto-deploy on push to `main`) |
 | Backend API | Google Apps Script (REST via `doPost`) |
 | Database | Google Sheets |
-| Offline | Service Worker (`sw.js`, cache `workclock-v3`) |
+| Offline | Service Worker (`sw.js`, cache `workclock-v5`) |
 
 ---
 
@@ -34,8 +34,8 @@ Data is stored in a Google Sheet. No server, no database — Apps Script is the 
 WorkClock/
 ├── index.html          # App UI (single page)
 ├── index.css           # Styles (iOS dark glassmorphism theme)
-├── app.js              # All frontend logic (~750 lines)
-├── sw.js               # Service Worker (cache: workclock-v3)
+├── app.js              # All frontend logic (~800+ lines)
+├── sw.js               # Service Worker (cache: workclock-v5)
 ├── manifest.json       # PWA manifest
 ├── google-script.js    # Google Apps Script backend (source of truth)
 ├── appsscript.json     # Apps Script config
@@ -74,7 +74,7 @@ Row 1 is the header. Data starts at row 2.
 
 **Deployed URL (hardcoded in app.js):**
 ```
-https://script.google.com/macros/s/AKfycbw1X-9KmoFH63FuUX6eNaKAD1YdIkORQ6In6g8veOLPTH3JhG27P6Kursw5YvrKSj-O/exec
+https://script.google.com/macros/s/AKfycbydh837wK89_56-YQ7eSVMC-fhrm8d0aLgKrf94MvEhjzonf1a6JYuArf41SWR38OoS/exec
 ```
 
 **Script ID (for clasp):** `1E-9vJWmDWR-saHVokvP100rh1REekSy7jgAnEJGP06qbpR12Swg_JvoK`
@@ -99,8 +99,12 @@ https://script.google.com/macros/s/AKfycbw1X-9KmoFH63FuUX6eNaKAD1YdIkORQ6In6g8ve
 ### Deploy Process (IMPORTANT)
 When `google-script.js` changes, you must:
 1. Run `npx clasp push --force` to upload to Apps Script
-2. In Apps Script UI: **Implementar → Administrar implementaciones → ✏️ → Nueva versión → Implementar**
-3. The URL stays the same — only the version number changes.
+2. Run `npx clasp version "description"` to create an immutable version
+3. Run `npx clasp deploy --versionNumber N --description "desc"` to create a new Web App deployment
+4. Update `DEFAULT_API_URL` in `app.js` with the new deployment URL
+5. Bump SW cache in `sw.js`, then `git commit + push`
+6. Clean up old deployments with `npx clasp undeploy <id>` (keep under 20)
+**Or use `npm run deploy:auto`** to do all of the above in one command.
 
 ---
 
@@ -169,10 +173,10 @@ Tapping the stats cards toggles between "hours mode" and "nómina mode" (shows p
 ---
 
 ## Service Worker
-- Cache name: `workclock-v3`
+- Cache name: `workclock-v5`
 - Caches: `index.html`, `index.css`, `app.js`, `manifest.json`, `assets/icon.png`
 - API calls to `script.google.com` are **never** cached
-- **To force cache update:** bump `CACHE_NAME` to `workclock-v4`, `v5`, etc. and push
+- **To force cache update:** bump `CACHE_NAME` to `workclock-v6`, `v7`, etc. and push
 
 ---
 
@@ -286,8 +290,8 @@ When frontend files change but users see the old version:
 
 ```bash
 # Bump the cache version in sw.js
-# Change: const CACHE_NAME = 'workclock-v3';
-# To:     const CACHE_NAME = 'workclock-v4';  (increment each time)
+# Change: const CACHE_NAME = 'workclock-v5';
+# To:     const CACHE_NAME = 'workclock-v6';  (increment each time)
 
 git add sw.js
 git commit -m "Bump SW cache to vN to force update"
@@ -305,7 +309,7 @@ Users then need to reload the app once (pull-to-refresh in Safari).
 # https://github.com/SantiagoCM71/WorkClock/actions
 
 # Test the API directly (should return { status: 'ok' })
-curl "https://script.google.com/macros/s/AKfycbw1X-9KmoFH63FuUX6eNaKAD1YdIkORQ6In6g8veOLPTH3JhG27P6Kursw5YvrKSj-O/exec"
+curl "https://script.google.com/macros/s/AKfycbydh837wK89_56-YQ7eSVMC-fhrm8d0aLgKrf94MvEhjzonf1a6JYuArf41SWR38OoS/exec"
 ```
 
 ---
@@ -316,7 +320,7 @@ curl "https://script.google.com/macros/s/AKfycbw1X-9KmoFH63FuUX6eNaKAD1YdIkORQ6I
 |-------|-------|
 | GitHub repo | `https://github.com/SantiagoCM71/WorkClock` |
 | GitHub Pages URL | `https://santiagocm71.github.io/WorkClock/` |
-| Apps Script URL | `https://script.google.com/macros/s/AKfycbw1X-9KmoFH63FuUX6eNaKAD1YdIkORQ6In6g8veOLPTH3JhG27P6Kursw5YvrKSj-O/exec` |
+| Apps Script URL | `https://script.google.com/macros/s/AKfycbydh837wK89_56-YQ7eSVMC-fhrm8d0aLgKrf94MvEhjzonf1a6JYuArf41SWR38OoS/exec` |
 | Apps Script ID | `1E-9vJWmDWR-saHVokvP100rh1REekSy7jgAnEJGP06qbpR12Swg_JvoK` |
 | Google Sheet ID | `12iuJSea50wuVwWGFHfdCRzah7OEMInOstcOM8ByzLMk` |
 | Sheet name | `Hoja 1` |
