@@ -129,6 +129,7 @@ function getFullState() {
   let segsSemana = 0;
   let segsMes    = 0;
   let activeInfo = { active: false };
+  let diasMes = {};  // { "1": hours, "2": hours, ... } — day of month → decimal hours worked
 
   for (let i = values.length - 1; i >= 1; i--) {
     const row = values[i];
@@ -148,6 +149,9 @@ function getFullState() {
         startTimestamp = d.getTime();
       }
       activeInfo = { active: true, startTime, startTimestamp };
+      // Mark today as active (in progress) in calendar
+      const activeDay = (row[0] instanceof Date ? row[0] : new Date(row[0])).getDate();
+      if (!diasMes[activeDay]) diasMes[activeDay] = -1; // -1 = active/in progress, no hours yet
     }
 
     const rowDate = row[0] instanceof Date ? row[0] : new Date(row[0]);
@@ -157,8 +161,12 @@ function getFullState() {
       let segs = 0;
       if (row[4] instanceof Date)        segs = row[4].getHours() * 3600 + row[4].getMinutes() * 60 + row[4].getSeconds();
       else if (typeof row[4] === 'number') segs = Math.round(row[4] * 86400);
-      if (rowDate >= startOfMonth) segsMes    += segs;
-      if (rowDate >= startOfWeek)  segsSemana += segs;
+      if (rowDate >= startOfMonth) {
+        segsMes += segs;
+        const dayNum = rowDate.getDate();
+        diasMes[dayNum] = (diasMes[dayNum] || 0) + segs / 3600; // accumulate decimal hours
+      }
+      if (rowDate >= startOfWeek) segsSemana += segs;
     }
 
     // Last 7 rows for visible history
@@ -192,7 +200,8 @@ function getFullState() {
     semanaTotal:    formatoHoras(segsSemana),
     mesTotal:       formatoHoras(segsMes),
     semanaSegundos: segsSemana,
-    mesSegundos:    segsMes
+    mesSegundos:    segsMes,
+    diasMes:        diasMes
   };
 }
 

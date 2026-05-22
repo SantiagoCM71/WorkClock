@@ -119,7 +119,8 @@ function saveToCache(fullState) {
       semanaTotal: fullState.semanaTotal,
       mesTotal: fullState.mesTotal,
       semanaSegundos: fullState.semanaSegundos,
-      mesSegundos: fullState.mesSegundos
+      mesSegundos: fullState.mesSegundos,
+      diasMes: fullState.diasMes || {}
     }));
   } catch(e) { /* quota exceeded — ignore */ }
 }
@@ -138,6 +139,7 @@ function renderFromCache() {
     };
     renderStats();
     renderHistory(c.history || []);
+    renderCalendar(c.diasMes || {});
     // Restore active shift UI from cache
     if (c.active && c.startTimestamp) {
       activeStartTime = c.startTimestamp;
@@ -262,6 +264,7 @@ async function refreshAll() {
     };
     renderStats();
     renderHistory(data.history || []);
+    renderCalendar(data.diasMes || {});
 
     // Save to cache for instant next load
     saveToCache(data);
@@ -302,6 +305,79 @@ function toggleMoneyMode() {
   if (navigator.vibrate) navigator.vibrate(10);
   isMoneyMode = !isMoneyMode;
   renderStats();
+}
+
+// --- CALENDAR ---
+function renderCalendar(diasMes) {
+  const grid = $('calendarGrid');
+  const titleEl = $('calendarTitle');
+  if (!grid || !titleEl) return;
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const today = now.getDate();
+
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  titleEl.textContent = `${meses[month]} ${year}`;
+
+  // Clear existing day cells (keep headers)
+  grid.querySelectorAll('.cal-day').forEach(el => el.remove());
+
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Convert Sunday=0 to Monday-start: Mon=0, Tue=1, ..., Sun=6
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+
+  // Empty cells for offset
+  for (let i = 0; i < startOffset; i++) {
+    const empty = document.createElement('span');
+    empty.className = 'cal-day empty';
+    empty.style.setProperty('--i', i);
+    grid.appendChild(empty);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const cell = document.createElement('span');
+    cell.style.setProperty('--i', startOffset + d);
+    cell.textContent = d;
+
+    const hours = diasMes[d] || 0;
+    let cls = 'cal-day';
+
+    if (d > today) {
+      cls += ' future';
+    } else if (hours === -1) {
+      cls += ' active-shift';
+    } else if (hours >= 6) {
+      cls += ' worked-high';
+    } else if (hours > 0) {
+      cls += ' worked';
+    } else {
+      cls += ' no-work';
+    }
+
+    if (d === today) cls += ' today';
+    cell.className = cls;
+
+    // Tooltip
+    if (hours > 0) {
+      const tip = document.createElement('span');
+      tip.className = 'cal-tooltip';
+      const h = Math.floor(hours);
+      const m = Math.round((hours - h) * 60);
+      tip.textContent = `${h}h ${m}m`;
+      cell.appendChild(tip);
+    } else if (hours === -1) {
+      const tip = document.createElement('span');
+      tip.className = 'cal-tooltip';
+      tip.textContent = 'En curso...';
+      cell.appendChild(tip);
+    }
+
+    grid.appendChild(cell);
+  }
 }
 
 // --- TIMER UI ---
@@ -345,6 +421,15 @@ function formatHMS(ms) {
 }
 
 // --- ACTION BUTTON (START/STOP) ---
+function burstAnimation(type) {
+  elBtnAction.classList.add('state-transitioning');
+  setTimeout(() => {
+    elBtnAction.classList.remove('state-transitioning');
+    elBtnAction.classList.add(type === 'start' ? 'burst-start' : 'burst-stop');
+    setTimeout(() => elBtnAction.classList.remove('burst-start', 'burst-stop'), 600);
+  }, 200);
+}
+
 function lockButton() {
   elBtnAction.disabled = true;
   elBtnAction.setAttribute('aria-disabled', 'true');
@@ -401,6 +486,7 @@ async function handleAction() {
         elTimerStatus.textContent = 'Turno activo';
         elTimerStatus.style.color = 'var(--system-orange)';
         showToast('Turno iniciado');
+        burstAnimation('start');
       } else {
         // Failed — restore clean inactive UI
         setActionButtonState(false);
@@ -691,6 +777,7 @@ function handleFinishSkip() {
   finishRowNumber = null;
   closeModal(elFinishModal);
   showToast('Turno finalizado');
+  burstAnimation('stop');
   refreshAll();
 }
 

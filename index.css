@@ -1160,7 +1160,138 @@ input[type="date"]:focus {
   margin-top: 2px;
 }
 
-/* 18. CLASES AUXILIARES */
+/* 18. ATTENDANCE CALENDAR (GitHub-style) */
+.calendar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-header {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-align: center;
+  text-transform: uppercase;
+  padding: 4px 0;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  position: relative;
+  animation: calDayPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 15ms);
+}
+
+.cal-day.empty {
+  background: transparent;
+}
+
+.cal-day.no-work {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-tertiary);
+}
+
+.cal-day.worked {
+  background: rgba(52, 199, 89, 0.2);
+  color: var(--system-green);
+  border: 1px solid rgba(52, 199, 89, 0.25);
+}
+
+.cal-day.worked-high {
+  background: rgba(52, 199, 89, 0.45);
+  color: #FFF;
+  border: 1px solid rgba(52, 199, 89, 0.5);
+}
+
+.cal-day.active-shift {
+  background: rgba(255, 149, 0, 0.25);
+  color: var(--system-orange);
+  border: 1px solid rgba(255, 149, 0, 0.4);
+  animation: calPulse 2s infinite ease-in-out;
+}
+
+.cal-day.today {
+  box-shadow: 0 0 0 2px var(--system-blue);
+}
+
+.cal-day.future {
+  background: transparent;
+  color: var(--text-tertiary);
+  opacity: 0.3;
+}
+
+@keyframes calPulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+@keyframes calDayPop {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* 19. PRO ANIMATIONS */
+
+/* Button state transition */
+.action-btn.state-transitioning {
+  transform: scale(0.85) !important;
+  opacity: 0.6;
+}
+
+/* Success burst effect */
+@keyframes successBurst {
+  0% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.5); }
+  50% { box-shadow: 0 0 0 25px rgba(52, 199, 89, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0); }
+}
+
+@keyframes stopBurst {
+  0% { box-shadow: 0 0 0 0 rgba(255, 149, 0, 0.5); }
+  50% { box-shadow: 0 0 0 25px rgba(255, 149, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 149, 0, 0); }
+}
+
+.action-btn.burst-start {
+  animation: successBurst 0.6s ease-out;
+}
+
+.action-btn.burst-stop {
+  animation: stopBurst 0.6s ease-out;
+}
+
+/* History card stagger animation */
+.shift-item-card {
+  animation: cardSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.shift-item-card:nth-child(1) { animation-delay: 0s; }
+.shift-item-card:nth-child(2) { animation-delay: 0.05s; }
+.shift-item-card:nth-child(3) { animation-delay: 0.1s; }
+.shift-item-card:nth-child(4) { animation-delay: 0.15s; }
+.shift-item-card:nth-child(5) { animation-delay: 0.2s; }
+.shift-item-card:nth-child(6) { animation-delay: 0.25s; }
+.shift-item-card:nth-child(7) { animation-delay: 0.3s; }
+
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 20. CLASES AUXILIARES */
 .hidden {
   display: none !important;
 }
