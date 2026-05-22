@@ -2,7 +2,23 @@
 
 ---
 
-## [Current] — 2026-05-20
+## [Current] — 2026-05-22
+
+### Added
+- **Auto-deploy script** (`npm run deploy:auto`) — single command deploys backend + frontend
+  - Validates syntax, pushes to Apps Script, creates version + deployment
+  - Auto-updates `DEFAULT_API_URL` in app.js with new deployment URL
+  - Bumps SW cache version, commits, pushes to GitHub Pages
+  - Cleans up old deployments (keeps last 4)
+- **Fallback for `getFullState`** — if backend not redeployed, falls back to legacy 2-call approach
+
+### Changed
+- Sheet columns simplified: removed Rango + Ubicacion, replaced with Descripcion (col F)
+- `deploy-auto.ps1` rewritten — removed Telegram logic, added GitHub Pages integration
+
+---
+
+## [2026-05-20]
 
 ### Added
 - **Finish shift modal** ("Turno Finalizado") — appears after ending a shift

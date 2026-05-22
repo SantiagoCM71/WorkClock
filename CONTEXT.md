@@ -234,34 +234,48 @@ npx clasp push
 # npx clasp push --force
 ```
 
-#### Step 2 — Create new deployment version (MANUAL, required)
-> ⚠️ `clasp push` only uploads the code. To make it live, you must create a new version in the UI.
+#### Step 2 — Create new deployment version
 
+**Option A: Automatic (recommended)**
+```bash
+npm run deploy:auto
+```
+This single command does EVERYTHING:
+1. Validates syntax of google-script.js
+2. `clasp push` — uploads code
+3. `clasp version` — creates immutable version
+4. `clasp deploy` — creates new Web App deployment
+5. Auto-updates `DEFAULT_API_URL` in app.js with new URL
+6. Bumps Service Worker cache version in sw.js
+7. `git commit + push` — deploys frontend to GitHub Pages
+8. Cleans up old deployments (keeps last 4)
+
+**Option B: Manual (fallback)**
 1. Go to [script.google.com](https://script.google.com)
 2. Open project **WorkClock Pro**
-3. Click **"Implementar"** (top right, blue button)
-4. Select **"Administrar implementaciones"**
-5. Click the **pencil ✏️** on the active deployment
-6. In "Versión" dropdown → select **"Nueva versión"**
-7. Click **"Implementar"**
-8. ✅ Done — the URL **stays the same**, only the internal version number changes
+3. Click **"Implementar"** → **"Administrar implementaciones"** → **✏️** → **"Nueva versión"** → **"Implementar"**
 
-> **Why is this manual?** Google Apps Script requires a human to authorize new deployments. `clasp deploy` can automate it but requires extra OAuth scopes — not set up in this project.
+> **Note:** Each `clasp deploy` creates a NEW URL. The auto-deploy script handles this by updating app.js automatically. If you deploy manually via the Apps Script UI, the URL stays the same (it updates the existing deployment in-place).
 
 ---
 
 ### Deploy Both at Once (typical workflow)
 
 ```bash
-# 1. Push backend
-npx clasp push --force
+# ONE COMMAND does everything (backend + frontend):
+npm run deploy:auto
 
-# 2. Push frontend
+# Or without cleanup of old deployments:
+npm run deploy:auto:no-clean
+```
+
+**Manual alternative (if auto-deploy fails):**
+```bash
+npx clasp push
 git add app.js index.html index.css sw.js google-script.js
 git commit -m "feat: describe what changed"
 git push origin main
-
-# 3. Then go to Apps Script UI and create new deployment version (see above)
+# Then create new deployment version in Apps Script UI
 ```
 
 ---
