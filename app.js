@@ -11,7 +11,7 @@ const NOMINA = {
 };
 
 // --- ESTADO ---
-const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbydh837wK89_56-YQ7eSVMC-fhrm8d0aLgKrf94MvEhjzonf1a6JYuArf41SWR38OoS/exec';
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbz0kcZVCO-PL0P6WmFne4iFcYIo0SGKP_pmetZwXaTAbzFSt4Q4hSyYDZqcMaTjYoba/exec';
 let webAppUrl = DEFAULT_API_URL;
 let isMoneyMode = false;
 let appData = { weekStr: '--', monthStr: '--', weekSecs: 0, monthSecs: 0 };
@@ -362,7 +362,7 @@ function renderCalendar(diasMes) {
     if (d === today) cls += ' today';
     cell.className = cls;
 
-    // Tooltip
+    // Tooltip (shown on tap via .show-tip class)
     if (hours > 0) {
       const tip = document.createElement('span');
       tip.className = 'cal-tooltip';
@@ -370,16 +370,32 @@ function renderCalendar(diasMes) {
       const m = Math.round((hours - h) * 60);
       tip.textContent = `${h}h ${m}m`;
       cell.appendChild(tip);
+      cell.addEventListener('click', () => toggleCalTip(cell));
     } else if (hours === -1) {
       const tip = document.createElement('span');
       tip.className = 'cal-tooltip';
       tip.textContent = 'En curso...';
       cell.appendChild(tip);
+      cell.addEventListener('click', () => toggleCalTip(cell));
     }
 
     grid.appendChild(cell);
   }
 }
+
+function toggleCalTip(cell) {
+  const wasActive = cell.classList.contains('show-tip');
+  // Close all other tips
+  document.querySelectorAll('.cal-day.show-tip').forEach(el => el.classList.remove('show-tip'));
+  if (!wasActive) cell.classList.add('show-tip');
+}
+
+// Close calendar tooltips when tapping outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.cal-day')) {
+    document.querySelectorAll('.cal-day.show-tip').forEach(el => el.classList.remove('show-tip'));
+  }
+});
 
 // --- TIMER UI ---
 function checkActiveShiftState() {

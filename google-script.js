@@ -111,6 +111,7 @@ function formatoHoras(segundos) {
 function getFullState() {
   const sheet = getSheet();
   const values = sheet.getDataRange().getValues();
+  const displayValues = sheet.getDataRange().getDisplayValues(); // for reliable column E parsing
   const tz = Session.getScriptTimeZone();
 
   // Default empty response
@@ -156,17 +157,24 @@ function getFullState() {
 
     const rowDate = row[0] instanceof Date ? row[0] : new Date(row[0]);
 
-    // Accumulate totals
+    // Accumulate totals — parse column E from display text for reliability
+    // (raw values can be Date objects with broken getHours() or numbers with ambiguous scale)
     if (row[4] !== '' && row[4] !== null) {
       let segs = 0;
-      if (row[4] instanceof Date)        segs = row[4].getHours() * 3600 + row[4].getMinutes() * 60 + row[4].getSeconds();
-      else if (typeof row[4] === 'number') segs = Math.round(row[4] * 86400);
-      if (rowDate >= startOfMonth) {
+      const displayE = displayValues[i] ? displayValues[i][4] : '';
+      if (displayE && displayE.includes(':')) {
+        // Parse display format like "9:30:00" or "0:45:00"
+        const parts = displayE.split(':');
+        segs = (parseInt(parts[0]) || 0) * 3600 + (parseInt(parts[1]) || 0) * 60 + (parseInt(parts[2]) || 0);
+      } else if (typeof row[4] === 'number') {
+        segs = Math.round(row[4] * 86400);
+      }
+      if (segs > 0 && rowDate >= startOfMonth) {
         segsMes += segs;
         const dayNum = rowDate.getDate();
-        diasMes[dayNum] = (diasMes[dayNum] || 0) + segs / 3600; // accumulate decimal hours
+        diasMes[dayNum] = (diasMes[dayNum] || 0) + segs / 3600;
       }
-      if (rowDate >= startOfWeek) segsSemana += segs;
+      if (segs > 0 && rowDate >= startOfWeek) segsSemana += segs;
     }
 
     // Last 7 rows for visible history
@@ -179,9 +187,14 @@ function getFullState() {
 
       let horas = '--';
       if (row[4] !== '' && row[4] !== null) {
-        let s = row[4] instanceof Date
-          ? row[4].getHours() * 3600 + row[4].getMinutes() * 60 + row[4].getSeconds()
-          : Math.round(row[4] * 86400);
+        const dE = displayValues[i] ? displayValues[i][4] : '';
+        let s = 0;
+        if (dE && dE.includes(':')) {
+          const p = dE.split(':');
+          s = (parseInt(p[0]) || 0) * 3600 + (parseInt(p[1]) || 0) * 60 + (parseInt(p[2]) || 0);
+        } else if (typeof row[4] === 'number') {
+          s = Math.round(row[4] * 86400);
+        }
         const hrs  = Math.floor(s / 3600);
         const mins = Math.floor((s % 3600) / 60);
         horas = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
