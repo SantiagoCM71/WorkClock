@@ -140,14 +140,13 @@ body {
   flex-direction: column;
   min-height: calc(100vh - env(safe-area-inset-top, 24px) - env(safe-area-inset-bottom, 16px) - 80px);
   min-height: calc(100dvh - env(safe-area-inset-top, 24px) - env(safe-area-inset-bottom, 16px) - 80px);
-  gap: 18px;
-  justify-content: center;
+  gap: 16px;
 }
 
 .date-badge {
   background: var(--glass-bg-accent);
   border: 1px solid var(--glass-border);
-  padding: 6px 14px;
+  padding: 7px 16px;
   border-radius: 100px;
   width: fit-content;
   font-size: 0.85rem;
@@ -157,6 +156,7 @@ body {
   backdrop-filter: blur(5px);
   align-self: center;
   letter-spacing: 0.2px;
+  margin-bottom: 14px;
 }
 
 /* 5. SECCIÓN DEL TEMPORIZADOR Y BOTÓN CIRCULAR */
@@ -165,7 +165,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px 0;
+  flex: 1;
+  min-height: 0;
 }
 
 .timer-display {
@@ -189,16 +190,16 @@ body {
 /* Botón Circular Tactil */
 .action-btn-wrapper {
   position: relative;
-  width: 195px;
-  height: 195px;
+  width: 200px;
+  height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .action-btn {
-  width: 175px;
-  height: 175px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
   border: none;
   outline: none;
@@ -320,10 +321,10 @@ body {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-ios-md);
-  padding: 14px 18px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   box-shadow: 0 8px 32px var(--glass-shadow);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -338,15 +339,15 @@ body {
 }
 
 .stat-label {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
 }
 
 .stat-value {
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 700;
   color: var(--text-primary);
   font-family: var(--font-sans);
@@ -1030,7 +1031,7 @@ textarea {
 .action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 
 .action-row-btn {
@@ -1038,9 +1039,9 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 16px 16px;
-  border-radius: var(--radius-ios-md);
-  font-size: 0.9rem;
+  padding: 18px 16px;
+  border-radius: var(--radius-ios-lg);
+  font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-fast);
