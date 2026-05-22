@@ -24,7 +24,7 @@ Data is stored in a Google Sheet. No server, no database — Apps Script is the 
 | Hosting | GitHub Pages (auto-deploy on push to `main`) |
 | Backend API | Google Apps Script (REST via `doPost`) |
 | Database | Google Sheets |
-| Offline | Service Worker (`sw.js`, cache `workclock-v5`) |
+| Offline | Service Worker (`sw.js`, cache `workclock-v7`) |
 
 ---
 
@@ -35,7 +35,7 @@ WorkClock/
 ├── index.html          # App UI (single page)
 ├── index.css           # Styles (iOS dark glassmorphism theme)
 ├── app.js              # All frontend logic (~800+ lines)
-├── sw.js               # Service Worker (cache: workclock-v5)
+├── sw.js               # Service Worker (cache: workclock-v7)
 ├── manifest.json       # PWA manifest
 ├── google-script.js    # Google Apps Script backend (source of truth)
 ├── appsscript.json     # Apps Script config
@@ -74,7 +74,7 @@ Row 1 is the header. Data starts at row 2.
 
 **Deployed URL (hardcoded in app.js):**
 ```
-https://script.google.com/macros/s/AKfycbydh837wK89_56-YQ7eSVMC-fhrm8d0aLgKrf94MvEhjzonf1a6JYuArf41SWR38OoS/exec
+https://script.google.com/macros/s/AKfycbz0kcZVCO-PL0P6WmFne4iFcYIo0SGKP_pmetZwXaTAbzFSt4Q4hSyYDZqcMaTjYoba/exec
 ```
 
 **Script ID (for clasp):** `1E-9vJWmDWR-saHVokvP100rh1REekSy7jgAnEJGP06qbpR12Swg_JvoK`
@@ -173,10 +173,10 @@ Tapping the stats cards toggles between "hours mode" and "nómina mode" (shows p
 ---
 
 ## Service Worker
-- Cache name: `workclock-v5`
+- Cache name: `workclock-v7`
 - Caches: `index.html`, `index.css`, `app.js`, `manifest.json`, `assets/icon.png`
 - API calls to `script.google.com` are **never** cached
-- **To force cache update:** bump `CACHE_NAME` to `workclock-v6`, `v7`, etc. and push
+- **To force cache update:** bump `CACHE_NAME` to `workclock-v8`, `v9`, etc. and push
 
 ---
 
@@ -290,7 +290,7 @@ When frontend files change but users see the old version:
 
 ```bash
 # Bump the cache version in sw.js
-# Change: const CACHE_NAME = 'workclock-v5';
+# Change: const CACHE_NAME = 'workclock-v7';
 # To:     const CACHE_NAME = 'workclock-v6';  (increment each time)
 
 git add sw.js
@@ -309,7 +309,7 @@ Users then need to reload the app once (pull-to-refresh in Safari).
 # https://github.com/SantiagoCM71/WorkClock/actions
 
 # Test the API directly (should return { status: 'ok' })
-curl "https://script.google.com/macros/s/AKfycbydh837wK89_56-YQ7eSVMC-fhrm8d0aLgKrf94MvEhjzonf1a6JYuArf41SWR38OoS/exec"
+curl "https://script.google.com/macros/s/AKfycbz0kcZVCO-PL0P6WmFne4iFcYIo0SGKP_pmetZwXaTAbzFSt4Q4hSyYDZqcMaTjYoba/exec"
 ```
 
 ---
@@ -320,7 +320,7 @@ curl "https://script.google.com/macros/s/AKfycbydh837wK89_56-YQ7eSVMC-fhrm8d0aLg
 |-------|-------|
 | GitHub repo | `https://github.com/SantiagoCM71/WorkClock` |
 | GitHub Pages URL | `https://santiagocm71.github.io/WorkClock/` |
-| Apps Script URL | `https://script.google.com/macros/s/AKfycbydh837wK89_56-YQ7eSVMC-fhrm8d0aLgKrf94MvEhjzonf1a6JYuArf41SWR38OoS/exec` |
+| Apps Script URL | `https://script.google.com/macros/s/AKfycbz0kcZVCO-PL0P6WmFne4iFcYIo0SGKP_pmetZwXaTAbzFSt4Q4hSyYDZqcMaTjYoba/exec` |
 | Apps Script ID | `1E-9vJWmDWR-saHVokvP100rh1REekSy7jgAnEJGP06qbpR12Swg_JvoK` |
 | Google Sheet ID | `12iuJSea50wuVwWGFHfdCRzah7OEMInOstcOM8ByzLMk` |
 | Sheet name | `Hoja 1` |
