@@ -451,10 +451,10 @@ function generarReporteMes(sourceSheetName) {
   const neto       = Math.max(0, salCausado + auxCausado - deduccion);
   const q2         = Math.max(0, neto - NOM_QUINCENA_1);   // lo que queda por pagar
 
-  // Formateador COP propio (Apps Script no soporta es-CO de forma confiable)
-  // Usa punto como separador de miles: 930000 → "$930.000"
-  const cop = n => '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   const hms = s => { const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return m?`${h}h ${m}m`:`${h}h`; };
+  // Formato COP: "#,##0" + locale del spreadsheet convierte la coma en separador
+  // de miles. En es-CO → punto → "$930.000". Se aplica como setNumberFormat().
+  const COP_FMT = '"$"#,##0';
 
   // --- SHEET ---
   const rName = 'Reporte_' + monthStr + '_' + yearStr;
@@ -565,14 +565,17 @@ function generarReporteMes(sourceSheetName) {
       .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
   });
 
+  // Valores como números crudos + setNumberFormat para que Sheets
+  // use el separador de miles del locale del spreadsheet (es-CO → punto)
   const payVals = [
-    {c:2,sp:1, val:cop(NOM_QUINCENA_1), fg:TX3,  bg:LGRY, sz:13, bold:false}, // muted
-    {c:3,sp:2, val:cop(neto),           fg:TX,   bg:BG,   sz:14, bold:true},
-    {c:5,sp:2, val:cop(q2),             fg:W,    bg:ACC,  sz:16, bold:true},  // protagonista
+    {c:2,sp:1, val:NOM_QUINCENA_1, fg:TX3, bg:LGRY, sz:13, bold:false},
+    {c:3,sp:2, val:neto,           fg:TX,  bg:BG,   sz:14, bold:true},
+    {c:5,sp:2, val:q2,             fg:W,   bg:ACC,  sz:16, bold:true},
   ];
   payVals.forEach(v => {
     (v.sp>1 ? rSheet.getRange(12,v.c,1,v.sp).merge() : rSheet.getRange(12,v.c))
-      .setValue(v.val).setBackground(v.bg).setFontColor(v.fg)
+      .setValue(v.val).setNumberFormat(COP_FMT)
+      .setBackground(v.bg).setFontColor(v.fg)
       .setFontSize(v.sz).setFontWeight(v.bold?'bold':'normal')
       .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
   });
