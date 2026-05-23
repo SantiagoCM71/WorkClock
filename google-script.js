@@ -451,7 +451,9 @@ function generarReporteMes(sourceSheetName) {
   const neto       = Math.max(0, salCausado + auxCausado - deduccion);
   const q2         = Math.max(0, neto - NOM_QUINCENA_1);   // lo que queda por pagar
 
-  const cop = n => '$' + Math.round(n).toLocaleString('es-CO');
+  // Formateador COP propio (Apps Script no soporta es-CO de forma confiable)
+  // Usa punto como separador de miles: 930000 → "$930.000"
+  const cop = n => '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   const hms = s => { const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return m?`${h}h ${m}m`:`${h}h`; };
 
   // --- SHEET ---
@@ -497,7 +499,6 @@ function generarReporteMes(sourceSheetName) {
   const TOTROW = 16 + numRows;
   rSheet.setRowHeight(TOTROW,   H.RTOT);
   rSheet.setRowHeight(TOTROW+1, H.SP);
-  rSheet.setRowHeight(TOTROW+2, H.FOOT);
 
   const tz      = Session.getScriptTimeZone();
   const genDate = Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy  HH:mm');
@@ -622,12 +623,6 @@ function generarReporteMes(sourceSheetName) {
     .setBackground(ACC).setFontColor(W)
     .setFontSize(10).setFontWeight('bold')
     .setHorizontalAlignment('right').setVerticalAlignment('middle').setFontFamily('Arial');
-
-  // ── FOOTER ──
-  rSheet.getRange(TOTROW+2, 1, 1, 7).merge()
-    .setValue('WorkClock Pro   ·   ' + periodo + '   ·   Generado el ' + genDate)
-    .setBackground(DARK).setFontColor(TX2).setFontSize(8)
-    .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
 
   try { rSheet.setHiddenGridlines(true); } catch(e) {}
   SpreadsheetApp.flush();
