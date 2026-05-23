@@ -2,7 +2,26 @@
 
 ---
 
-## [Current] — 2026-05-22
+## [Current] — 2026-05-23
+
+### Added
+- **4 pro animations:**
+  - **Timer digit flip** — cada dígito del cronómetro hace flip vertical (scaleY) al cambiar, como marcador deportivo
+  - **Count-up stats** — horas de semana/mes cuentan de 0 al valor real (750ms ease-out cúbico) al cargar datos nuevos
+  - **Progress arc** — anillo SVG verde alrededor del botón se llena según horas trabajadas hoy (meta: 8h); se vuelve dorado al 100%; actualiza cada segundo durante turno activo
+  - **Particles** — 16 puntos de color explotan desde el botón al iniciar (verde) y terminar (naranja) un turno
+
+### Fixed
+- **Timer no se actualizaba al editar hora de entrada del turno activo** — al guardar el modal de edición sin hora de salida, se recalcula `activeStartTime` con la nueva hora y el cronómetro salta al tiempo correcto inmediatamente
+- **Toggle horas ↔ COP no revertía** — `animateStatCountUp` usaba `requestAnimationFrame` sin posibilidad de cancelarse; si el usuario tocaba las cards mientras la animación corría, el loop sobreescribía el texto COP con horas. Corregido: la animación se cancela si `isMoneyMode` es true; los trackers `_lastWeekSecs/_lastMonthSecs` se resetean al salir del modo COP para forzar re-render
+
+### Changed
+- Service Worker cache bumped a v22
+- `margin-bottom` de `timer-status` aumentado a 48px para evitar que el anillo pulsante se superponga al texto "Trabajando desde…"
+
+---
+
+## [2026-05-22]
 
 ### Added
 - **Dashboard v3** — complete redesign of Google Sheets Dashboard

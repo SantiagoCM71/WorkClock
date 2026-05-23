@@ -24,7 +24,7 @@ Data is stored in a Google Sheet. No server, no database — Apps Script is the 
 | Hosting | GitHub Pages (auto-deploy on push to `main`) |
 | Backend API | Google Apps Script (REST via `doPost`) |
 | Database | Google Sheets |
-| Offline | Service Worker (`sw.js`, cache `workclock-v17`) |
+| Offline | Service Worker (`sw.js`, cache `workclock-v22`) |
 
 ---
 
@@ -158,6 +158,28 @@ elBtnAction.addEventListener('touchend', (e) => {
 
 ---
 
+## Pro Animations
+
+| Animation | Trigger | Details |
+|-----------|---------|---------|
+| **Digit flip** | Cada segundo | Cada dígito del cronómetro hace `scaleY` 0→1 al cambiar. IDs `d0`–`d5` en el DOM. CSS: `.flipping-out` / `.flipping-in` |
+| **Count-up stats** | `renderStats()` cuando seconds cambia | `animateStatCountUp(el, toSecs)` — 750ms ease-out cúbico. Se cancela si `isMoneyMode === true`. Trackers `_lastWeekSecs` / `_lastMonthSecs` evitan re-animar sin cambio de valor |
+| **Progress arc** | `refreshAll()` + cada segundo si turno activo | SVG `#progressArc` con `#arcFill`. `stroke-dasharray: 678.6` (2π×108). Meta = 8h. Verde → dorado al 100%. `_lastDiasMes` mantiene referencia para update desde el timer tick |
+| **Particles** | `burstAnimation(type)` | 16 divs `.particle` con `--tx/--ty/--dur` CSS vars. Verde en start, naranja en stop. Se eliminan del DOM tras la animación |
+
+### Timer digit IDs
+```
+d0 d1 : d2 d3 : d4 d5
+HH    :  MM   :  SS
+```
+
+### Stats toggle (isMoneyMode)
+- `toggleMoneyMode()` flipa `isMoneyMode` y llama `renderStats()`
+- Al volver a horas: resetea `_lastWeekSecs = -1` para forzar count-up
+- `animateStatCountUp` verifica `isMoneyMode` en cada frame y cancela si es true
+
+---
+
 ## Nómina (Payroll) Constants
 ```js
 const NOMINA = {
@@ -173,7 +195,7 @@ Tapping the stats cards toggles between "hours mode" and "nómina mode" (shows p
 ---
 
 ## Service Worker
-- Cache name: `workclock-v17`
+- Cache name: `workclock-v22`
 - Caches: `index.html`, `index.css`, `app.js`, `manifest.json`, `assets/icon.png`
 - API calls to `script.google.com` are **never** cached
 - **To force cache update:** bump `CACHE_NAME` to `workclock-v18`, `v19`, etc. and push

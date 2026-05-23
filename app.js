@@ -313,6 +313,7 @@ function secsToHoursStr(secs) {
 function animateStatCountUp(el, toSecs, duration = 750) {
   const start = performance.now();
   const step = now => {
+    if (isMoneyMode) return; // modo COP activo — cancelar animación
     const t = Math.min((now - start) / duration, 1);
     const ease = 1 - Math.pow(1 - t, 3);
     el.textContent = secsToHoursStr(Math.floor(ease * toSecs));
