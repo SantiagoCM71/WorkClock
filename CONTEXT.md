@@ -24,7 +24,7 @@ Data is stored in a Google Sheet. No server, no database — Apps Script is the 
 | Hosting | GitHub Pages (auto-deploy on push to `main`) |
 | Backend API | Google Apps Script (REST via `doPost`) |
 | Database | Google Sheets |
-| Offline | Service Worker (`sw.js`, cache `workclock-v25`) |
+| Offline | Service Worker (`sw.js`, cache `workclock-v26`) |
 
 ---
 
@@ -35,7 +35,7 @@ WorkClock/
 ├── index.html          # App UI (single page)
 ├── index.css           # Styles (iOS dark glassmorphism theme)
 ├── app.js              # All frontend logic (~800+ lines)
-├── sw.js               # Service Worker (cache: workclock-v25)
+├── sw.js               # Service Worker (cache: workclock-v26)
 ├── manifest.json       # PWA manifest
 ├── google-script.js    # Google Apps Script backend (source of truth)
 ├── appsscript.json     # Apps Script config
@@ -196,7 +196,7 @@ Tapping the stats cards toggles between "hours mode" and "nómina mode" (shows p
 ---
 
 ## Service Worker
-- Cache name: `workclock-v25`
+- Cache name: `workclock-v26`
 - Caches: `index.html`, `index.css`, `app.js`, `manifest.json`, `assets/icon.png`
 - API calls to `script.google.com` are **never** cached
 - **To force cache update:** bump `CACHE_NAME` to `workclock-v18`, `v19`, etc. and push
