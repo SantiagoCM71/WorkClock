@@ -563,11 +563,9 @@ function generarReporteMes(sourceSheetName) {
       .setFontSize(10).setFontWeight('bold')
       .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
   });
-  // Borde anterior eliminado (blanco = sin borde visible)
-  rSheet.getRange(11,5,2,2)
-    .setBorder(true, true, true, true, false, false, '#FFFFFF', SpreadsheetApp.BorderStyle.SOLID);
-  // Color #047857 en F11:G11 (col 6-7, fila 11) según indicación del usuario
-  rSheet.getRange(11,6,1,2).setBackground('#047857');
+  // Franja #047857 entre NETO y A PAGAR: borde derecho de D11:D12
+  rSheet.getRange(11,4,2,1)
+    .setBorder(false, false, false, true, false, false, '#047857', SpreadsheetApp.BorderStyle.SOLID_THICK);
 
   // Valores como números crudos + setNumberFormat para que Sheets
   // use el separador de miles del locale del spreadsheet (es-CO → punto)
