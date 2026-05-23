@@ -563,9 +563,9 @@ function generarReporteMes(sourceSheetName) {
       .setFontSize(10).setFontWeight('bold')
       .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
   });
-  // Franja acento izquierdo en la columna A PAGAR (col E) — filas header + valor
+  // Franja oscura izquierda en la columna A PAGAR (col E) — header + valor
   rSheet.getRange(11,5,2,1)
-    .setBorder(false,true,false,false,false,false, ACCT, SpreadsheetApp.BorderStyle.SOLID_THICK);
+    .setBorder(false,true,false,false,false,false, DARK, SpreadsheetApp.BorderStyle.SOLID_THICK);
 
   // Valores como números crudos + setNumberFormat para que Sheets
   // use el separador de miles del locale del spreadsheet (es-CO → punto)
