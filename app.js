@@ -11,7 +11,7 @@ const NOMINA = {
 };
 
 // --- ESTADO ---
-const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyVzZTJ3DR6r0q2dHVecrNeRaHaXpQ7JOpHazwz8mpte30tNU0ncrPmPhoHRQUYPW3h/exec';
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyvjsZ1I7IC548RxPdLxTvN5oxmuwfLnplxaHs0-dNXJaQ73A3uu9CbaKlukyCrsoZ4/exec';
 let webAppUrl = DEFAULT_API_URL;
 let isMoneyMode = false;
 let appData = { weekStr: '--', monthStr: '--', weekSecs: 0, monthSecs: 0 };
@@ -49,9 +49,10 @@ const elLblMonth   = $('lblMonth');
 const elValWeek    = $('valWeek');
 const elValMonth   = $('valMonth');
 
-const elBtnAddManual     = $('btnAddManual');
-const elBtnNuevoMes      = $('btnNuevoMes');
-const elBtnEliminarUlt   = $('btnEliminarUltimo');
+const elBtnAddManual       = $('btnAddManual');
+const elBtnGenerarReporte  = $('btnGenerarReporte');
+const elBtnNuevoMes        = $('btnNuevoMes');
+const elBtnEliminarUlt     = $('btnEliminarUltimo');
 const elHistoryList      = $('historyList');
 const elEmptyState       = $('emptyState');
 const elHistoryHint      = $('historyHint');
@@ -843,6 +844,24 @@ async function handleEliminarUltimo() {
   }
 }
 
+// --- GENERAR REPORTE VISUAL ---
+async function handleGenerarReporte() {
+  showToast('Generando reporte...');
+  elBtnGenerarReporte.disabled = true;
+  elBtnGenerarReporte.textContent = '...';
+
+  const r = await apiCall('generarReporte');
+
+  elBtnGenerarReporte.disabled = false;
+  elBtnGenerarReporte.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+    Reporte Visual`;
+
+  if (r && r.success) {
+    showToast('Reporte creado: ' + (r.reportName || 'OK'));
+  }
+}
+
 // --- NUEVO MES ---
 async function handleNuevoMes() {
   if (!confirm('⚠️ ¿Cerrar mes?\nSe archivará toda la data y se empezará de 0.')) return;
@@ -973,6 +992,7 @@ function setupEventListeners() {
   elStatsGrid.addEventListener('click', toggleMoneyMode);
 
   elBtnAddManual.addEventListener('click', openManualModal);
+  elBtnGenerarReporte.addEventListener('click', handleGenerarReporte);
   elBtnNuevoMes.addEventListener('click', handleNuevoMes);
   elBtnEliminarUlt.addEventListener('click', handleEliminarUltimo);
 

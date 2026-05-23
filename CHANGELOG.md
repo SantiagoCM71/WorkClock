@@ -2,7 +2,30 @@
 
 ---
 
-## [Current] — 2026-05-23 — Bug Fixes
+## [Current] — 2026-05-23 — Reporte Visual
+
+### Added
+- **Reporte Visual de Mes** — nueva hoja de Google Sheets generada automáticamente con diseño ejecutivo profesional
+  - Header emerald con título "INFORME MENSUAL — MES AÑO" y fecha de generación
+  - 3 KPI cards: Horas Trabajadas, Jornadas, Cumplimiento (borde grueso verde, fuente grande)
+  - Sección LIQUIDACIÓN: Salario Causado · Aux. Transporte · Deducciones · **NETO A PAGAR** (destacado emerald)
+  - Tabla de todos los turnos del mes: Fecha · Día · Entrada · Salida · Horas · Descripción
+  - Filas alternadas, texto muted en columnas secundarias, horas en verde
+  - Footer oscuro con metadata de generación
+  - Cuadrícula oculta (aspecto limpio, listo para PDF/compartir)
+- **Botón "Reporte Visual"** en la fila de acciones de la app (entre Agregar Jornada y Nuevo Mes)
+- **`generarReporte` API action** en Apps Script — llamado desde la app o el menú de Sheets
+- **Generación automática al cerrar mes** — `iniciarNuevoMesApp` genera el reporte antes de limpiar
+- Ítem "📋 Generar Reporte Visual" en el menú ⏱️ WorkClock Pro de Google Sheets
+
+### Changed
+- Action row: 2 botones → 3 botones (layout grid 1fr 1fr 1fr); botones más compactos verticales
+- SW cache bumped a v25
+- CONTEXT.md actualizado
+
+---
+
+## [2026-05-23] — Bug Fixes
 
 ### Fixed
 - **exportCSV columna incorrecta** — el CSV usaba `r.rango` (campo eliminado) en lugar de `r.descripcion`; encabezado actualizado a `Fecha,Dia,Entrada,Salida,Horas,Descripcion`; las comillas dentro de la descripción se escapan correctamente (`""`)

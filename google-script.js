@@ -39,6 +39,7 @@ function doPost(e) {
     else if (action === 'guardarNota')            result = guardarNota(params.rowNumber, params.nota);
     else if (action === 'eliminarRegistro')       result = eliminarRegistro(params.rowNumber);
     else if (action === 'iniciarNuevoMesApp')     result = iniciarNuevoMesApp();
+    else if (action === 'generarReporte')         result = generarReporte();
     else throw new Error('Acción desconocida: ' + action);
 
     return jsonResponse(result);
@@ -65,6 +66,7 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('⏱️ WorkClock Pro')
     .addItem('📊 Actualizar Dashboard', 'generarDashboard')
+    .addItem('📋 Generar Reporte Visual', 'generarReporte')
     .addItem('📥 Exportar Mes (Copia)', 'exportarCierreDeMes')
     .addToUi();
 }
@@ -375,19 +377,244 @@ function iniciarNuevoMesApp() {
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const nombreHoja = meses[dObj.getMonth()] + '_' + dObj.getFullYear();
 
-  // Eliminar hoja del mismo nombre si existe
+  // 1) Generar reporte visual ANTES de limpiar (lee los datos actuales)
+  try { generarReporteMes(SHEET_NAME); } catch(e) { /* no bloquear el cierre de mes si falla */ }
+
+  // 2) Eliminar hoja del mismo nombre si existe
   let exportSheet = ss.getSheetByName(nombreHoja);
   if (exportSheet) ss.deleteSheet(exportSheet);
 
-  // Copiar y limpiar columnas GPS / Rango antes de guardar el archivo
+  // 3) Copiar y limpiar columnas GPS / Rango antes de guardar el archivo
   exportSheet = sheet.copyTo(ss);
   exportSheet.setName(nombreHoja);
   const dr = exportSheet.getDataRange();
   dr.copyTo(dr, { contentsOnly: true });
 
-  // Limpiar la hoja principal (mantener fila de cabecera si la hay)
+  // 4) Limpiar la hoja principal (mantener fila de cabecera)
   sheet.getRange(2, 1, lastRow - 1, 7).clearContent();
   return { success: true, archivoCreado: nombreHoja };
+}
+
+// =====================================================================
+// --- REPORTE VISUAL DE MES
+// =====================================================================
+
+/** Wrapper llamado desde la app (doPost) y desde el menú de Sheets */
+function generarReporte() {
+  try {
+    const rSheet = generarReporteMes(SHEET_NAME);
+    return { success: true, reportName: rSheet.getName() };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Genera una hoja "Reporte_<Mes>_<Año>" con diseño ejecutivo profesional.
+ * Lee datos de `sourceSheetName` (por defecto SHEET_NAME).
+ * Retorna el Sheet creado.
+ */
+function generarReporteMes(sourceSheetName) {
+  const ss  = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const src = ss.getSheetByName(sourceSheetName || SHEET_NAME);
+  if (!src) throw new Error('No se encontró la hoja: ' + (sourceSheetName || SHEET_NAME));
+
+  const lastRow = getUltimaFila(src);
+  if (lastRow <= 1) throw new Error('No hay registros en la hoja');
+
+  const numRows = lastRow - 1;
+  const raw = src.getRange(2, 1, numRows, 6).getDisplayValues();
+
+  // --- PERÍODO ---
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
+                 'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const dp        = (raw[0][0] || '').split('-');
+  const monthStr  = dp.length >= 2 ? (MESES[parseInt(dp[1],10)-1] || 'Mes') : 'Mes';
+  const yearStr   = dp[0] || String(new Date().getFullYear());
+  const periodo   = monthStr + ' ' + yearStr;
+
+  // --- CÁLCULOS ---
+  let totalSecs = 0, jornadas = 0;
+  raw.forEach(r => {
+    if (!r[4] || !r[3]) return;
+    const p = r[4].split(':');
+    if (p.length < 2) return;
+    const s = parseInt(p[0],10)*3600 + parseInt(p[1],10)*60 + parseInt(p[2]||0,10);
+    if (s > 0) { totalSecs += s; jornadas++; }
+  });
+  const totalHrs   = totalSecs / 3600;
+  const pct        = Math.min(totalHrs / NOM_HORAS_LEGALES * 100, 100);
+  const salCausado = Math.round(NOM_SALARIO_BASE   * (totalHrs / NOM_HORAS_LEGALES));
+  const auxCausado = Math.round(NOM_AUX_TRANSPORTE * (totalHrs / NOM_HORAS_LEGALES));
+  const deduccion  = NOM_DED_SALUD + NOM_DED_PENSION;
+  const neto       = Math.max(0, salCausado + auxCausado - deduccion);
+
+  const cop = n => '$' + Math.round(n).toLocaleString('es-CO');
+  const hms = s => { const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return m?`${h}h ${m}m`:`${h}h`; };
+
+  // --- SHEET ---
+  const rName  = 'Reporte_' + monthStr + '_' + yearStr;
+  let rSheet   = ss.getSheetByName(rName);
+  if (rSheet) ss.deleteSheet(rSheet);
+  rSheet = ss.insertSheet(rName);
+
+  // --- PALETA ---
+  const ACC  = '#059669', ACCD = '#047857', ACCL = '#ECFDF5';
+  const W    = '#FFFFFF', BG   = '#F8FAFC', BD   = '#E2E8F0';
+  const TX   = '#0F172A', TX2  = '#64748B', DARK = '#1E293B';
+  const RED  = '#EF4444', YLW  = '#F59E0B';
+
+  // --- COLUMNAS: A(gutter) B(Fecha) C(Día) D(Entrada) E(Salida) F(Horas) G(Descripción) H(gutter) ---
+  [[1,28],[2,110],[3,55],[4,90],[5,90],[6,75],[7,190],[8,28]]
+    .forEach(([c,w]) => rSheet.setColumnWidth(c, w));
+
+  // --- ALTURAS DE FILAS ---
+  // R1 spacer | R2 título | R3 subtítulo | R4 spacer | R5 lbl | R6-R8 KPIs | R9 spacer
+  // R10 lbl | R11-R12 liquidación | R13 spacer | R14 lbl | R15 thead | R16+ datos | foot
+  const H = { SP:8, TITLE:52, SUB:26, LBL:22, KLBL:20, KVAL:50, KSUB:18,
+              PLBL:22, PVAL:40, SP2:16, THDR:26, DATA:23, FOOT:22 };
+
+  rSheet.setRowHeight(1, H.SP);
+  rSheet.setRowHeight(2, H.TITLE);
+  rSheet.setRowHeight(3, H.SUB);
+  rSheet.setRowHeight(4, H.SP2);
+  rSheet.setRowHeight(5, H.LBL);
+  rSheet.setRowHeight(6, H.KLBL);
+  rSheet.setRowHeight(7, H.KVAL);
+  rSheet.setRowHeight(8, H.KSUB);
+  rSheet.setRowHeight(9, H.SP2);
+  rSheet.setRowHeight(10, H.LBL);
+  rSheet.setRowHeight(11, H.PLBL);
+  rSheet.setRowHeight(12, H.PVAL);
+  rSheet.setRowHeight(13, H.SP2);
+  rSheet.setRowHeight(14, H.LBL);
+  rSheet.setRowHeight(15, H.THDR);
+  for (let i = 0; i < numRows; i++) rSheet.setRowHeight(16 + i, H.DATA);
+  const lastDR = 15 + numRows;
+  rSheet.setRowHeight(lastDR + 1, H.SP);
+  rSheet.setRowHeight(lastDR + 2, H.FOOT);
+
+  const tz      = Session.getScriptTimeZone();
+  const genDate = Utilities.formatDate(new Date(), tz, "dd/MM/yyyy  HH:mm");
+
+  // ── TÍTULO ──
+  rSheet.getRange(2,1,1,8).merge()
+    .setValue('INFORME MENSUAL — ' + periodo.toUpperCase())
+    .setBackground(ACC).setFontColor(W).setFontSize(15).setFontWeight('bold')
+    .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
+
+  rSheet.getRange(3,1,1,8).merge()
+    .setValue('WorkClock Pro   ·   Período: ' + periodo + '   ·   Generado el ' + genDate)
+    .setBackground(ACCD).setFontColor('#A7F3D0').setFontSize(9)
+    .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
+
+  // ── SECCIÓN RESUMEN ──
+  rSheet.getRange(5,2,1,6).merge()
+    .setValue('RESUMEN').setFontColor(TX2).setFontSize(8).setFontWeight('bold')
+    .setHorizontalAlignment('left').setVerticalAlignment('bottom').setFontFamily('Arial');
+
+  const kpis = [
+    { c:2, label:'HORAS TRABAJADAS', val:hms(totalSecs), sub:'de '+NOM_HORAS_LEGALES+'h legales' },
+    { c:4, label:'JORNADAS',         val:String(jornadas), sub:'días trabajados' },
+    { c:6, label:'CUMPLIMIENTO',     val:pct.toFixed(1)+'%', sub:(pct>=100?'Meta alcanzada':'en progreso') },
+  ];
+  kpis.forEach(k => {
+    rSheet.getRange(6,k.c,1,2).merge()
+      .setValue(k.label).setBackground(ACCL).setFontColor(ACCD)
+      .setFontSize(8).setFontWeight('bold')
+      .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial')
+      .setBorder(true,true,false,true,false,false, ACC, SpreadsheetApp.BorderStyle.SOLID_THICK);
+    rSheet.getRange(7,k.c,1,2).merge()
+      .setValue(k.val).setBackground(W).setFontColor(ACCD)
+      .setFontSize(22).setFontWeight('bold')
+      .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial')
+      .setBorder(false,true,false,true,false,false, BD, SpreadsheetApp.BorderStyle.SOLID);
+    rSheet.getRange(8,k.c,1,2).merge()
+      .setValue(k.sub).setBackground(W).setFontColor(TX2).setFontSize(8)
+      .setHorizontalAlignment('center').setVerticalAlignment('top').setFontFamily('Arial')
+      .setBorder(false,true,true,true,false,false, BD, SpreadsheetApp.BorderStyle.SOLID);
+  });
+
+  // ── SECCIÓN LIQUIDACIÓN ──
+  rSheet.getRange(10,2,1,6).merge()
+    .setValue('LIQUIDACIÓN').setFontColor(TX2).setFontSize(8).setFontWeight('bold')
+    .setHorizontalAlignment('left').setVerticalAlignment('bottom').setFontFamily('Arial');
+
+  // Headers liquidación: B=SalCausado C=AuxTransp D:E=Deducciones F:G=NETO
+  const payHdrs = [
+    {c:2,sp:1,lbl:'Salario Causado',   bg:DARK, fg:W},
+    {c:3,sp:1,lbl:'Aux. Transporte',   bg:DARK, fg:W},
+    {c:4,sp:2,lbl:'Ded. Salud+Pensión',bg:DARK, fg:W},
+    {c:6,sp:2,lbl:'NETO A PAGAR',      bg:ACC,  fg:W},
+  ];
+  payHdrs.forEach(h => {
+    (h.sp>1 ? rSheet.getRange(11,h.c,1,h.sp).merge() : rSheet.getRange(11,h.c))
+      .setValue(h.lbl).setBackground(h.bg).setFontColor(h.fg)
+      .setFontSize(8).setFontWeight('bold')
+      .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
+  });
+
+  // Valores liquidación
+  const payVals = [
+    {c:2,sp:1,val:cop(salCausado), fg:TX,  bg:BG, sz:13},
+    {c:3,sp:1,val:cop(auxCausado), fg:TX,  bg:BG, sz:13},
+    {c:4,sp:2,val:cop(deduccion),  fg:RED, bg:BG, sz:13},
+    {c:6,sp:2,val:cop(neto),       fg:W,   bg:ACC,sz:15},
+  ];
+  payVals.forEach(v => {
+    (v.sp>1 ? rSheet.getRange(12,v.c,1,v.sp).merge() : rSheet.getRange(12,v.c))
+      .setValue(v.val).setBackground(v.bg).setFontColor(v.fg)
+      .setFontSize(v.sz).setFontWeight('bold')
+      .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
+  });
+
+  // ── SECCIÓN REGISTROS ──
+  rSheet.getRange(14,2,1,6).merge()
+    .setValue('REGISTROS DEL MES  (' + numRows + ' entradas)')
+    .setFontColor(TX2).setFontSize(8).setFontWeight('bold')
+    .setHorizontalAlignment('left').setVerticalAlignment('bottom').setFontFamily('Arial');
+
+  // Encabezado tabla
+  ['Fecha','Día','Entrada','Salida','Horas','Descripción'].forEach((h,i) => {
+    rSheet.getRange(15, 2+i)
+      .setValue(h).setBackground(DARK).setFontColor(W)
+      .setFontSize(9).setFontWeight('bold')
+      .setHorizontalAlignment(i===4?'right':'left')
+      .setVerticalAlignment('middle').setFontFamily('Arial');
+  });
+
+  // Datos en lote (rápido)
+  if (numRows > 0) {
+    const vals   = raw.map(r => [r[0],r[1],r[2],r[3],r[4],r[5]||'']);
+    const bgMat  = raw.map((_,i) => Array(6).fill(i%2===0?W:BG));
+    const fgMat  = raw.map(() => [TX, TX2, TX, TX, ACCD, TX2]);
+    const bldMat = raw.map(() => ['normal','normal','normal','normal','bold','normal']);
+
+    rSheet.getRange(16,2,numRows,6)
+      .setValues(vals).setFontFamily('Arial').setFontSize(9).setVerticalAlignment('middle')
+      .setFontWeights(bldMat);
+    rSheet.getRange(16,2,numRows,6).setBackgrounds(bgMat);
+    rSheet.getRange(16,2,numRows,6).setFontColors(fgMat);
+    rSheet.getRange(16,2,numRows,4).setHorizontalAlignment('left');
+    rSheet.getRange(16,6,numRows,1).setHorizontalAlignment('right');
+    rSheet.getRange(16,7,numRows,1).setHorizontalAlignment('left');
+
+    // Línea divisoria inferior en cada fila de datos
+    rSheet.getRange(16,2,numRows,6)
+      .setBorder(false,false,true,false,false,true, BD, SpreadsheetApp.BorderStyle.SOLID);
+  }
+
+  // ── FOOTER ──
+  rSheet.getRange(lastDR+2, 1, 1, 8).merge()
+    .setValue('WorkClock Pro   ·   ' + periodo + '   ·   ' + genDate)
+    .setBackground(DARK).setFontColor(TX2).setFontSize(8)
+    .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
+
+  // Ocultar cuadrícula para aspecto limpio
+  try { rSheet.setHiddenGridlines(true); } catch(e) {}
+
+  SpreadsheetApp.flush();
+  return rSheet;
 }
 
 // =====================================================================

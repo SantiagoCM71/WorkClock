@@ -1079,25 +1079,31 @@ textarea {
   text-align: center;
 }
 
-/* 11. ACTION ROW (Agregar Jornada + Nuevo Mes) */
+/* 11. ACTION ROW (3 buttons) */
 .action-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
 }
 
 .action-row-btn {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 22px 16px;
+  gap: 6px;
+  padding: 16px 8px;
   border-radius: var(--radius-ios-lg);
-  font-size: 1.05rem;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-fast);
   border: none;
+  letter-spacing: 0.01em;
+}
+
+.action-row-btn svg {
+  flex-shrink: 0;
 }
 
 .action-row-btn:active {
@@ -1108,6 +1114,12 @@ textarea {
   background: rgba(10, 132, 255, 0.1);
   color: var(--system-blue);
   border: 1px solid rgba(10, 132, 255, 0.25);
+}
+
+.btn-report {
+  background: rgba(255, 159, 10, 0.1);
+  color: var(--system-orange);
+  border: 1px solid rgba(255, 159, 10, 0.25);
 }
 
 .btn-new-month {
