@@ -1,6 +1,6 @@
 # WorkClock Pro — Project Context
 
-> Last updated: 2026-05-22  
+> Last updated: 2026-05-23  
 > For any agent (Codex, Antigravity, Claude, etc.) picking up this project.
 
 ---
@@ -24,7 +24,7 @@ Data is stored in a Google Sheet. No server, no database — Apps Script is the 
 | Hosting | GitHub Pages (auto-deploy on push to `main`) |
 | Backend API | Google Apps Script (REST via `doPost`) |
 | Database | Google Sheets |
-| Offline | Service Worker (`sw.js`, cache `workclock-v22`) |
+| Offline | Service Worker (`sw.js`, cache `workclock-v24`) |
 
 ---
 
@@ -35,7 +35,7 @@ WorkClock/
 ├── index.html          # App UI (single page)
 ├── index.css           # Styles (iOS dark glassmorphism theme)
 ├── app.js              # All frontend logic (~800+ lines)
-├── sw.js               # Service Worker (cache: workclock-v17)
+├── sw.js               # Service Worker (cache: workclock-v24)
 ├── manifest.json       # PWA manifest
 ├── google-script.js    # Google Apps Script backend (source of truth)
 ├── appsscript.json     # Apps Script config
@@ -74,7 +74,7 @@ Row 1 is the header. Data starts at row 2.
 
 **Deployed URL (hardcoded in app.js):**
 ```
-https://script.google.com/macros/s/AKfycbwvbmNKQZQOXaDedcyisOudJy6koQew91Ku9RzCd0eXIJUluV2B1Hew9AIopVYL3Jrb/exec
+https://script.google.com/macros/s/AKfycbyVzZTJ3DR6r0q2dHVecrNeRaHaXpQ7JOpHazwz8mpte30tNU0ncrPmPhoHRQUYPW3h/exec
 ```
 
 **Script ID (for clasp):** `1E-9vJWmDWR-saHVokvP100rh1REekSy7jgAnEJGP06qbpR12Swg_JvoK`
@@ -195,7 +195,7 @@ Tapping the stats cards toggles between "hours mode" and "nómina mode" (shows p
 ---
 
 ## Service Worker
-- Cache name: `workclock-v22`
+- Cache name: `workclock-v24`
 - Caches: `index.html`, `index.css`, `app.js`, `manifest.json`, `assets/icon.png`
 - API calls to `script.google.com` are **never** cached
 - **To force cache update:** bump `CACHE_NAME` to `workclock-v18`, `v19`, etc. and push
@@ -332,7 +332,7 @@ Users then need to reload the app once (pull-to-refresh in Safari).
 # https://github.com/SantiagoCM71/WorkClock/actions
 
 # Test the API directly (should return { status: 'ok' })
-curl "https://script.google.com/macros/s/AKfycbwvbmNKQZQOXaDedcyisOudJy6koQew91Ku9RzCd0eXIJUluV2B1Hew9AIopVYL3Jrb/exec"
+curl "https://script.google.com/macros/s/AKfycbyVzZTJ3DR6r0q2dHVecrNeRaHaXpQ7JOpHazwz8mpte30tNU0ncrPmPhoHRQUYPW3h/exec"
 ```
 
 ---
@@ -343,7 +343,7 @@ curl "https://script.google.com/macros/s/AKfycbwvbmNKQZQOXaDedcyisOudJy6koQew91K
 |-------|-------|
 | GitHub repo | `https://github.com/SantiagoCM71/WorkClock` |
 | GitHub Pages URL | `https://santiagocm71.github.io/WorkClock/` |
-| Apps Script URL | `https://script.google.com/macros/s/AKfycbwvbmNKQZQOXaDedcyisOudJy6koQew91Ku9RzCd0eXIJUluV2B1Hew9AIopVYL3Jrb/exec` |
+| Apps Script URL | `https://script.google.com/macros/s/AKfycbyVzZTJ3DR6r0q2dHVecrNeRaHaXpQ7JOpHazwz8mpte30tNU0ncrPmPhoHRQUYPW3h/exec` |
 | Apps Script ID | `1E-9vJWmDWR-saHVokvP100rh1REekSy7jgAnEJGP06qbpR12Swg_JvoK` |
 | Google Sheet ID | `12iuJSea50wuVwWGFHfdCRzah7OEMInOstcOM8ByzLMk` |
 | Sheet name | `Hoja 1` |

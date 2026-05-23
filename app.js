@@ -719,8 +719,7 @@ function renderHistory(history) {
     card.addEventListener('click', () => openEditModal(r.rowNumber, r.fecha, r.in24, r.out24));
 
     const diaLabel = r.dia ? ` — ${r.dia}` : '';
-    const descText = r.descripcion || 'Sin descripción';
-    const descClass = r.descripcion ? '' : 'empty-note';
+    const hasDesc = !!r.descripcion;
 
     card.innerHTML = `
       <div class="shift-item-top">
@@ -732,12 +731,15 @@ function renderHistory(history) {
         <span>${r.entrada} — ${r.salida}</span>
       </div>
       <div class="shift-item-bottom">
-        <span class="shift-item-note ${descClass}">${descText}</span>
+        <span class="shift-item-note${hasDesc ? '' : ' empty-note'}"></span>
         <button class="btn-delete-shift" data-row="${r.rowNumber}" aria-label="Eliminar">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
         </button>
       </div>
     `;
+
+    // Set description via textContent to prevent XSS
+    card.querySelector('.shift-item-note').textContent = r.descripcion || 'Sin descripción';
 
     // Attach delete handler
     card.querySelector('.btn-delete-shift').addEventListener('click', (e) => handleDeleteShift(r.rowNumber, e));
@@ -866,9 +868,10 @@ function exportCSV() {
       return;
     }
     let csv = 'data:text/csv;charset=utf-8,';
-    csv += 'Fecha,Entrada,Salida,Horas,Rango\r\n';
+    csv += 'Fecha,Dia,Entrada,Salida,Horas,Descripcion\r\n';
     data.history.forEach(r => {
-      csv += `${r.fecha},${r.entrada},${r.salida},${r.horas},"${r.rango || ''}"\r\n`;
+      const desc = (r.descripcion || '').replace(/"/g, '""'); // escape inner quotes
+      csv += `${r.fecha},${r.dia || ''},${r.entrada},${r.salida},${r.horas},"${desc}"\r\n`;
     });
     const link = document.createElement('a');
     link.setAttribute('href', encodeURI(csv));
@@ -995,10 +998,13 @@ function setupEventListeners() {
   elBtnResetLocal.addEventListener('click', () => {
     if (confirm('¿Limpiar cache local? Los datos en Google Sheets no se tocan.')) {
       localStorage.removeItem('activeStartTime');
+      localStorage.removeItem('wc_cache');
       activeStartTime = null;
       if (timerInterval) clearInterval(timerInterval);
       resetTimerDigits();
       setActionButtonState(false);
+      _lastWeekSecs = -1;
+      _lastMonthSecs = -1;
       showToast('Cache limpiado');
       refreshAll();
     }

@@ -2,7 +2,20 @@
 
 ---
 
-## [Current] — 2026-05-23
+## [Current] — 2026-05-23 — Bug Fixes
+
+### Fixed
+- **exportCSV columna incorrecta** — el CSV usaba `r.rango` (campo eliminado) en lugar de `r.descripcion`; encabezado actualizado a `Fecha,Dia,Entrada,Salida,Horas,Descripcion`; las comillas dentro de la descripción se escapan correctamente (`""`)
+- **"Limpiar Cache" incompleto** — el botón solo borraba `activeStartTime` pero no `wc_cache`; ahora limpia ambas entradas de localStorage y resetea los trackers `_lastWeekSecs/_lastMonthSecs`
+- **XSS en historial** — la descripción del turno se inyectaba como `innerHTML`; ahora se asigna con `textContent` para prevenir ejecución de HTML/scripts
+
+### Changed
+- Service Worker cache bumped a v24
+- CONTEXT.md actualizado: URL de API (v42), versión de SW, fecha
+
+---
+
+## [2026-05-23]
 
 ### Added
 - **4 pro animations:**
