@@ -766,6 +766,21 @@ async function saveEdit() {
 
   if (r && r.success) {
     closeModal(elEditModal);
+
+    // Si hay turno activo y se editó sin hora de salida → es el turno corriendo
+    // Recalcular activeStartTime con la nueva hora de entrada
+    if (activeStartTime && !elEditOut.value && elEditIn.value) {
+      const [h, m] = elEditIn.value.split(':').map(Number);
+      const newStart = new Date();
+      newStart.setHours(h, m, 0, 0);
+      // Solo actualizar si la nueva hora es en el pasado (sanity check)
+      if (newStart.getTime() < Date.now()) {
+        activeStartTime = newStart.getTime();
+        localStorage.setItem('activeStartTime', JSON.stringify(activeStartTime));
+        startTimerUI(activeStartTime);
+      }
+    }
+
     showToast('Turno actualizado');
     refreshAll();
   }
