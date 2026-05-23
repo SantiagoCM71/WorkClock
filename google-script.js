@@ -547,7 +547,7 @@ function generarReporteMes(sourceSheetName) {
 
   // ── SECCIÓN LIQUIDACIÓN ──
   rSheet.getRange(10,2,1,5).merge()
-    .setValue('LIQUIDACIÓN').setFontColor(TX2).setFontSize(8).setFontWeight('bold')
+    .setValue('LIQUIDACIÓN NÓMINA').setFontColor(TX2).setFontSize(8).setFontWeight('bold')
     .setHorizontalAlignment('left').setVerticalAlignment('middle').setFontFamily('Arial');
   rSheet.getRange(10,2)
     .setBorder(false,true,false,false,false,false, ACC, SpreadsheetApp.BorderStyle.SOLID_THICK);
