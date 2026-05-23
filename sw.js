@@ -1,4 +1,4 @@
-const CACHE_NAME = 'workclock-v37';
+const CACHE_NAME = 'workclock-v38';
 const ASSETS = [
   './index.html',
   './index.css',
