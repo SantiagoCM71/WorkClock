@@ -42,9 +42,13 @@
         <!-- Timer -->
         <div class="timer-section">
           <div class="date-badge" id="currentDateBadge">Martes, 20 de Mayo</div>
-          <div class="timer-display" id="timerDisplay">00:00:00</div>
+          <div class="timer-display" id="timerDisplay"><span class="digit" id="d0">0</span><span class="digit" id="d1">0</span><span class="timer-sep blink">:</span><span class="digit" id="d2">0</span><span class="digit" id="d3">0</span><span class="timer-sep blink">:</span><span class="digit" id="d4">0</span><span class="digit" id="d5">0</span></div>
           <div class="timer-status" id="timerStatusLabel">Turno inactivo</div>
           <div class="action-btn-wrapper">
+            <svg class="progress-arc" id="progressArc" viewBox="0 0 230 230" xmlns="http://www.w3.org/2000/svg">
+              <circle class="arc-track" cx="115" cy="115" r="108"/>
+              <circle class="arc-fill" id="arcFill" cx="115" cy="115" r="108"/>
+            </svg>
             <button class="action-btn state-start" id="btnAction">
               <span class="btn-ripple"></span>
               <span class="btn-ripple-two"></span>

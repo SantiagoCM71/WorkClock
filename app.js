@@ -15,6 +15,11 @@ const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyVzZTJ3DR6r0q2
 let webAppUrl = DEFAULT_API_URL;
 let isMoneyMode = false;
 let appData = { weekStr: '--', monthStr: '--', weekSecs: 0, monthSecs: 0 };
+let _prevDigits = ['0','0','0','0','0','0'];
+let _lastDiasMes = {};
+let _lastWeekSecs = -1;
+let _lastMonthSecs = -1;
+const ARC_CIRC = 2 * Math.PI * 108;
 let timerInterval = null;
 let activeStartTime = JSON.parse(localStorage.getItem('activeStartTime')) || null;
 let editingRowNumber = null;
@@ -35,6 +40,7 @@ const elTimerStatus    = $('timerStatusLabel');
 const elBtnAction      = $('btnAction');
 const elBtnActionLabel = $('btnActionLabel');
 
+const elDigits = [0,1,2,3,4,5].map(i => document.getElementById('d' + i));
 const elStatsGrid  = $('statsGrid');
 const elCardWeek   = $('cardWeek');
 const elCardMonth  = $('cardMonth');
@@ -149,6 +155,8 @@ function renderFromCache() {
     renderStats();
     renderHistory(c.history || []);
     renderCalendar(c.diasMes || {});
+    _lastDiasMes = c.diasMes || {};
+    updateProgressArc(_lastDiasMes);
     // Restore active shift UI from cache
     if (c.active && c.startTimestamp) {
       activeStartTime = c.startTimestamp;
@@ -266,7 +274,7 @@ async function refreshAll() {
       activeStartTime = null;
       localStorage.removeItem('activeStartTime');
       setActionButtonState(false);
-      elTimerDisplay.textContent = '00:00:00';
+      resetTimerDigits();
       elTimerStatus.textContent = 'Turno inactivo';
       elTimerStatus.style.color = 'var(--text-secondary)';
     }
@@ -281,6 +289,8 @@ async function refreshAll() {
     renderStats();
     renderHistory(data.history || []);
     renderCalendar(data.diasMes || {});
+    _lastDiasMes = data.diasMes || {};
+    updateProgressArc(_lastDiasMes);
 
     // Save to cache for instant next load
     saveToCache(data);
@@ -291,6 +301,27 @@ async function refreshAll() {
 }
 
 // --- STATS & NÓMINA ---
+function secsToHoursStr(secs) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  if (h === 0 && m === 0) return '0m';
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function animateStatCountUp(el, toSecs, duration = 750) {
+  const start = performance.now();
+  const step = now => {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    el.textContent = secsToHoursStr(Math.floor(ease * toSecs));
+    if (t < 1) requestAnimationFrame(step);
+    else el.textContent = secsToHoursStr(toSecs);
+  };
+  requestAnimationFrame(step);
+}
+
 function renderStats() {
   if (isMoneyMode) {
     elLblWeek.textContent = 'Neto Sem';
@@ -302,10 +333,16 @@ function renderStats() {
   } else {
     elLblWeek.textContent = 'Esta Semana';
     elLblMonth.textContent = 'Este Mes';
-    elValWeek.textContent = appData.weekStr;
-    elValMonth.textContent = appData.monthStr;
     elCardWeek.classList.remove('money-active');
     elCardMonth.classList.remove('money-active');
+    if (appData.weekSecs !== _lastWeekSecs) {
+      _lastWeekSecs = appData.weekSecs;
+      animateStatCountUp(elValWeek, appData.weekSecs);
+    }
+    if (appData.monthSecs !== _lastMonthSecs) {
+      _lastMonthSecs = appData.monthSecs;
+      animateStatCountUp(elValMonth, appData.monthSecs);
+    }
   }
 }
 
@@ -432,28 +469,93 @@ function setActionButtonState(active) {
   }
 }
 
-function startTimerUI(startTime) {
-  if (timerInterval) clearInterval(timerInterval);
-  const tick = () => {
-    const ms = Date.now() - startTime;
-    elTimerDisplay.innerHTML = formatHMS(ms);
-  };
-  tick();
-  timerInterval = setInterval(tick, 1000);
+function resetTimerDigits() {
+  _prevDigits = ['0','0','0','0','0','0'];
+  elDigits.forEach(el => {
+    el.classList.remove('flipping-out', 'flipping-in');
+    el.textContent = '0';
+  });
 }
 
-function formatHMS(ms) {
+function flipDigit(el, newVal) {
+  el.classList.remove('flipping-in', 'flipping-out');
+  el.classList.add('flipping-out');
+  setTimeout(() => {
+    el.textContent = newVal;
+    el.classList.remove('flipping-out');
+    el.classList.add('flipping-in');
+    setTimeout(() => el.classList.remove('flipping-in'), 140);
+  }, 90);
+}
+
+function updateTimerDigits(ms) {
   const total = Math.floor(ms / 1000);
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
   const pad = n => String(n).padStart(2, '0');
-  const colon = '<span class="blink">:</span>';
-  return `${pad(h)}${colon}${pad(m)}${colon}${pad(s)}`;
+  const vals = [...pad(h), ...pad(m), ...pad(s)];
+  vals.forEach((v, i) => {
+    if (v !== _prevDigits[i]) {
+      flipDigit(elDigits[i], v);
+      _prevDigits[i] = v;
+    }
+  });
+}
+
+function startTimerUI(startTime) {
+  if (timerInterval) clearInterval(timerInterval);
+  const tick = () => {
+    const ms = Date.now() - startTime;
+    updateTimerDigits(ms);
+    if (_lastDiasMes[new Date().getDate()] === -1) updateProgressArc(_lastDiasMes);
+  };
+  tick();
+  timerInterval = setInterval(tick, 1000);
+}
+
+// --- PROGRESS ARC ---
+function updateProgressArc(diasMes) {
+  const arcFill = $('arcFill');
+  const arcSvg  = $('progressArc');
+  const today   = new Date().getDate();
+  let todayHours = diasMes[today];
+  if (todayHours === undefined || todayHours === null) todayHours = 0;
+  if (todayHours === -1) {
+    todayHours = activeStartTime ? (Date.now() - activeStartTime) / 3600000 : 0;
+  }
+  if (todayHours <= 0) { arcSvg.classList.remove('visible'); return; }
+  const progress = Math.min(todayHours / 8, 1);
+  arcFill.style.strokeDashoffset = ARC_CIRC * (1 - progress);
+  arcFill.classList.toggle('arc-complete', progress >= 1);
+  arcSvg.classList.add('visible');
+}
+
+// --- PARTICLES ---
+function spawnParticles(type) {
+  const wrapper = elBtnAction.closest('.action-btn-wrapper');
+  const palette = type === 'start'
+    ? ['#34C759','#30D158','#4CD964','#00E676','#69F0AE']
+    : ['#FF9500','#FF6B00','#FF453A','#FF9F0A','#FFD60A'];
+  for (let i = 0; i < 16; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = Math.random() * Math.PI * 2;
+    const dist  = 55 + Math.random() * 75;
+    const size  = 4 + Math.random() * 6;
+    const dur   = (0.5 + Math.random() * 0.5).toFixed(2);
+    const tx    = (Math.cos(angle) * dist).toFixed(1);
+    const ty    = (Math.sin(angle) * dist).toFixed(1);
+    const color = palette[Math.floor(Math.random() * palette.length)];
+    p.style.cssText = `width:${size}px;height:${size}px;background:${color};top:calc(50% - ${size/2}px);left:calc(50% - ${size/2}px);--tx:${tx}px;--ty:${ty}px;--dur:${dur}s`;
+    wrapper.appendChild(p);
+    setTimeout(() => p.remove(), (parseFloat(dur) + 0.15) * 1000);
+  }
 }
 
 // --- ACTION BUTTON (START/STOP) ---
 function burstAnimation(type) {
+  spawnParticles(type);
   elBtnAction.classList.add('state-transitioning');
   setTimeout(() => {
     elBtnAction.classList.remove('state-transitioning');
@@ -522,7 +624,7 @@ async function handleAction() {
       } else {
         // Failed — restore clean inactive UI
         setActionButtonState(false);
-        elTimerDisplay.textContent = '00:00:00';
+        resetTimerDigits();
         elTimerStatus.textContent = r ? 'Error al iniciar' : 'Sin conexión';
         elTimerStatus.style.color = 'var(--text-secondary)';
       }
@@ -544,7 +646,7 @@ async function handleAction() {
         activeStartTime = null;
         localStorage.removeItem('activeStartTime');
         setActionButtonState(false);
-        elTimerDisplay.textContent = '00:00:00';
+        resetTimerDigits();
         elTimerStatus.textContent = 'Turno inactivo';
 
         // Show finish modal with shift summary
@@ -575,7 +677,7 @@ async function handleAction() {
       elTimerStatus.style.color = 'var(--system-orange)';
     } else {
       setActionButtonState(false);
-      elTimerDisplay.textContent = '00:00:00';
+      resetTimerDigits();
       elTimerStatus.textContent = 'Error — reintenta';
       elTimerStatus.style.color = 'var(--text-secondary)';
     }
@@ -875,7 +977,7 @@ function setupEventListeners() {
       localStorage.removeItem('activeStartTime');
       activeStartTime = null;
       if (timerInterval) clearInterval(timerInterval);
-      elTimerDisplay.textContent = '00:00:00';
+      resetTimerDigits();
       setActionButtonState(false);
       showToast('Cache limpiado');
       refreshAll();
