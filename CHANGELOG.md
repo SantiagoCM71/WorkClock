@@ -4,7 +4,7 @@
 
 ## [Current] — 2026-05-23 — Reporte Visual + Bug Fixes
 
-> Backend: v47 · SW cache: workclock-v29
+> Backend: v58 · SW cache: workclock-v40
 
 ### Added
 - **Reporte Visual de Mes** (`generarReporteMes`) — nueva hoja de Google Sheets generada automáticamente con diseño ejecutivo profesional
@@ -30,8 +30,13 @@
 - Action row: 2 botones → 3 botones (layout grid `1fr 1fr 1fr`); botones más compactos con icono arriba + texto abajo
 - Sección liquidación: "LIQUIDACIÓN" → "LIQUIDACIÓN NÓMINA"
 - Columna Descripción eliminada del reporte visual (reporte más limpio sin notas internas)
-- SW cache bumped a v29
-- CONTEXT.md y CHANGELOG.md actualizados
+- "A PAGAR — Q2" → "A PAGAR — QUINCENA 2"
+- Header "A PAGAR — QUINCENA 2" fondo cambiado a `#047857` (más oscuro que el valor)
+- Columnas del reporte ensanchadas de ~544px a ~950px para llenar A4 con márgenes angostos en PDF
+- Spacer rows reducidos (14px → 6px) para reporte más compacto
+- Font size 9 → 10 en headers de tabla, datos y fila total
+- SW cache bumped a v40
+- CONTEXT.md actualizado con sección completa del reporte visual (layout, celdas merged, lecciones aprendidas)
 
 ---
 

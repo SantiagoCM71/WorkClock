@@ -1,6 +1,6 @@
 # WorkClock Pro — Project Context
 
-> Last updated: 2026-05-23 (v47 backend, SW v29)  
+> Last updated: 2026-05-23 (v58 backend, SW v40)  
 > For any agent (Codex, Antigravity, Claude, etc.) picking up this project.
 
 ---
@@ -24,7 +24,7 @@ Data is stored in a Google Sheet. No server, no database — Apps Script is the 
 | Hosting | GitHub Pages (auto-deploy on push to `main`) |
 | Backend API | Google Apps Script (REST via `doPost`) |
 | Database | Google Sheets |
-| Offline | Service Worker (`sw.js`, cache `workclock-v29`) |
+| Offline | Service Worker (`sw.js`, cache `workclock-v40`) |
 
 ---
 
@@ -35,7 +35,7 @@ WorkClock/
 ├── index.html          # App UI (single page)
 ├── index.css           # Styles (iOS dark glassmorphism theme)
 ├── app.js              # All frontend logic (~800+ lines)
-├── sw.js               # Service Worker (cache: workclock-v29)
+├── sw.js               # Service Worker (cache: workclock-v40)
 ├── manifest.json       # PWA manifest
 ├── google-script.js    # Google Apps Script backend (source of truth)
 ├── appsscript.json     # Apps Script config
@@ -75,9 +75,9 @@ Row 1 is the header. Data starts at row 2.
 
 **Deployed URL (hardcoded in app.js):**
 ```
-https://script.google.com/macros/s/AKfycbyphFlgKnqytKO2YzC-NbvKilgZAbncWF4sEwT48wTfouDFohppS0TYC_ZhqH2I_ner/exec
+https://script.google.com/macros/s/AKfycbw9Dz7F0Z0CEFlqrKl4EnalYnzjJYKJ9wKMTj-cGabaycYJ-sZz96x6jtTllonrjEcg/exec
 ```
-*(v47 — updated 2026-05-23)*
+*(v58 — updated 2026-05-23)*
 
 **Script ID (for clasp):** `1E-9vJWmDWR-saHVokvP100rh1REekSy7jgAnEJGP06qbpR12Swg_JvoK`
 
@@ -214,8 +214,57 @@ Tapping the stats cards toggles between "hours mode" and "nómina mode" (shows p
 
 ---
 
+## Reporte Visual (`generarReporteMes`)
+
+Genera una hoja `Reporte_<Mes>_<Año>` con diseño ejecutivo profesional.
+
+### Layout de filas (row → contenido)
+| Fila | Contenido |
+|------|-----------|
+| 1 | Spacer (4px) |
+| 2 | Título: "INFORME MENSUAL — MES AÑO" (fondo ACC) |
+| 3 | Subtítulo: período + fecha generación (fondo ACCD) |
+| 4 | Spacer (6px) |
+| 5 | Label "RESUMEN DEL MES" |
+| 6 | KPI headers (HORAS TRABAJADAS, JORNADAS, CUMPLIMIENTO) |
+| 7 | KPI valores |
+| 8 | KPI subtextos |
+| 9 | Spacer (6px) |
+| 10 | Label "LIQUIDACIÓN NÓMINA" |
+| 11 | Payment headers (QUINCENA 1 · NETO TOTAL MES · A PAGAR — QUINCENA 2) |
+| 12 | Payment valores (COP) |
+| 13 | Spacer (6px) |
+| 14 | Label "REGISTROS DEL MES (N entradas)" |
+| 15 | Table header (Fecha · Día · Entrada · Salida · Horas) |
+| 16…N | Datos de turnos |
+| N+1 | Fila TOTAL |
+
+### Celdas merged del cuadro de pagos (fila 11-12)
+```
+B11         → QUINCENA 1        (bg: DGRY #334155)
+C11:D11     → NETO TOTAL MES    (bg: DARK #1E293B)
+E11:F11     → A PAGAR — QUINCENA 2  (bg: #047857)
+
+B12         → $930.000          (bg: LGRY #F1F5F9)
+C12:D12     → $neto             (bg: BG #F0FDF4)
+E12:F12     → $quincena2        (bg: ACC #059669)
+```
+
+### Columnas (A-G)
+```
+A(1)=10px gutter | B(2)=230px | C(3)=100px | D(4)=210px | E(5)=210px | F(6)=180px | G(7)=10px gutter
+Total ~950px — diseñado para llenar A4 con márgenes angostos en PDF
+```
+
+### Lecciones aprendidas (styling en Sheets)
+> ⚠️ **`setBackground()` cambia el fondo de la celda.** Para cambiar el color de una celda específica, modificar el `bg` en el array `payHdrs`/`payVals`. NO usar `setBorder()` — los bordes entre celdas con fondos fuertes no se ven bien.  
+> ⚠️ **Celdas merged:** si E11:F11 está merged, `rSheet.getRange(11,6,1,1)` (F11 sola) no existe como celda independiente — todo cambio va a la celda merged E11:F11.  
+> ⚠️ **Columnas en código vs Sheets:** col 1=A, col 2=B, etc. Los payHdrs usan `c:2` (B), `c:3` (C), `c:5` (E). Verificar con la barra de fórmulas de Sheets antes de aplicar cambios.
+
+---
+
 ## Service Worker
-- Cache name: `workclock-v29`
+- Cache name: `workclock-v40`
 - Caches: `index.html`, `index.css`, `app.js`, `manifest.json`, `assets/icon.png`
 - API calls to `script.google.com` are **never** cached
 - **To force cache update:** bump `CACHE_NAME` (e.g. v29 → v30) and push — always increment, never reuse old version numbers
@@ -352,7 +401,7 @@ Users then need to reload the app once (pull-to-refresh in Safari).
 # https://github.com/SantiagoCM71/WorkClock/actions
 
 # Test the API directly (should return { status: 'ok' })
-curl "https://script.google.com/macros/s/AKfycbyphFlgKnqytKO2YzC-NbvKilgZAbncWF4sEwT48wTfouDFohppS0TYC_ZhqH2I_ner/exec"
+curl "https://script.google.com/macros/s/AKfycbw9Dz7F0Z0CEFlqrKl4EnalYnzjJYKJ9wKMTj-cGabaycYJ-sZz96x6jtTllonrjEcg/exec"
 ```
 
 ---
@@ -363,7 +412,7 @@ curl "https://script.google.com/macros/s/AKfycbyphFlgKnqytKO2YzC-NbvKilgZAbncWF4
 |-------|-------|
 | GitHub repo | `https://github.com/SantiagoCM71/WorkClock` |
 | GitHub Pages URL | `https://santiagocm71.github.io/WorkClock/` |
-| Apps Script URL | `https://script.google.com/macros/s/AKfycbyphFlgKnqytKO2YzC-NbvKilgZAbncWF4sEwT48wTfouDFohppS0TYC_ZhqH2I_ner/exec` *(v47)* |
+| Apps Script URL | `https://script.google.com/macros/s/AKfycbw9Dz7F0Z0CEFlqrKl4EnalYnzjJYKJ9wKMTj-cGabaycYJ-sZz96x6jtTllonrjEcg/exec` *(v58)* |
 | Apps Script ID | `1E-9vJWmDWR-saHVokvP100rh1REekSy7jgAnEJGP06qbpR12Swg_JvoK` |
 | Google Sheet ID | `12iuJSea50wuVwWGFHfdCRzah7OEMInOstcOM8ByzLMk` |
 | Sheet name | `Hoja 1` |
