@@ -515,9 +515,8 @@ function generarReporteMes(sourceSheetName) {
     .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
 
   // ── SECCIÓN RESUMEN ──
-  rSheet.getRange(5,1,1,7).setBackground(ACCT);  // franja de color full-width
   rSheet.getRange(5,2,1,5).merge()
-    .setValue('RESUMEN DEL MES').setFontColor(ACCD).setFontSize(10).setFontWeight('bold')
+    .setValue('RESUMEN DEL MES').setFontColor(TX2).setFontSize(8).setFontWeight('bold')
     .setHorizontalAlignment('left').setVerticalAlignment('middle').setFontFamily('Arial');
   rSheet.getRange(5,2)
     .setBorder(false,true,false,false,false,false, ACC, SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -546,18 +545,17 @@ function generarReporteMes(sourceSheetName) {
   });
 
   // ── SECCIÓN LIQUIDACIÓN ──
-  rSheet.getRange(10,1,1,7).setBackground(ACCT);  // franja de color full-width
   rSheet.getRange(10,2,1,5).merge()
-    .setValue('LIQUIDACIÓN NÓMINA').setFontColor(ACCD).setFontSize(10).setFontWeight('bold')
+    .setValue('LIQUIDACIÓN NÓMINA').setFontColor(TX2).setFontSize(8).setFontWeight('bold')
     .setHorizontalAlignment('left').setVerticalAlignment('middle').setFontFamily('Arial');
   rSheet.getRange(10,2)
     .setBorder(false,true,false,false,false,false, ACC, SpreadsheetApp.BorderStyle.SOLID_THICK);
 
   // Cols B-F: B=Quincena1(pagada) | C:D=Neto Total | E:F=A Pagar Quincena 2
   const payHdrs = [
-    {c:2,sp:1, lbl:'QUINCENA 1',         bg:DGRY, fg:TX3},
-    {c:3,sp:2, lbl:'NETO TOTAL MES',     bg:DARK, fg:W},
-    {c:5,sp:2, lbl:'A PAGAR — QUINCENA 2', bg:ACC, fg:W},
+    {c:2,sp:1, lbl:'QUINCENA 1',            bg:DGRY, fg:TX3},
+    {c:3,sp:2, lbl:'NETO TOTAL MES',        bg:DARK, fg:W},
+    {c:5,sp:2, lbl:'A PAGAR — QUINCENA 2',  bg:ACC,  fg:W},
   ];
   payHdrs.forEach(h => {
     (h.sp>1 ? rSheet.getRange(11,h.c,1,h.sp).merge() : rSheet.getRange(11,h.c))
@@ -565,6 +563,9 @@ function generarReporteMes(sourceSheetName) {
       .setFontSize(10).setFontWeight('bold')
       .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
   });
+  // Franja acento izquierdo en la columna A PAGAR (col E) — filas header + valor
+  rSheet.getRange(11,5,2,1)
+    .setBorder(false,true,false,false,false,false, ACCT, SpreadsheetApp.BorderStyle.SOLID_THICK);
 
   // Valores como números crudos + setNumberFormat para que Sheets
   // use el separador de miles del locale del spreadsheet (es-CO → punto)
@@ -582,10 +583,9 @@ function generarReporteMes(sourceSheetName) {
   });
 
   // ── SECCIÓN REGISTROS ──
-  rSheet.getRange(14,1,1,7).setBackground(ACCT);  // franja de color full-width
   rSheet.getRange(14,2,1,5).merge()
     .setValue('REGISTROS DEL MES  (' + numRows + ' entradas)')
-    .setFontColor(ACCD).setFontSize(10).setFontWeight('bold')
+    .setFontColor(TX2).setFontSize(8).setFontWeight('bold')
     .setHorizontalAlignment('left').setVerticalAlignment('middle').setFontFamily('Arial');
   rSheet.getRange(14,2)
     .setBorder(false,true,false,false,false,false, ACC, SpreadsheetApp.BorderStyle.SOLID_THICK);
