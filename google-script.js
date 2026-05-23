@@ -60,6 +60,7 @@ const NOM_AUX_TRANSPORTE = 250000;
 const NOM_HORAS_LEGALES  = 176;
 const NOM_DED_SALUD      = 70000;
 const NOM_DED_PENSION    = 70000;
+const NOM_QUINCENA_1     = 930000;  // Pago fijo 1ª quincena (ajustar si cambia)
 
 // --- MENÚ DESKTOP EN SHEETS ---
 function onOpen() {
@@ -428,10 +429,10 @@ function generarReporteMes(sourceSheetName) {
   // --- PERÍODO ---
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
                  'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const dp        = (raw[0][0] || '').split('-');
-  const monthStr  = dp.length >= 2 ? (MESES[parseInt(dp[1],10)-1] || 'Mes') : 'Mes';
-  const yearStr   = dp[0] || String(new Date().getFullYear());
-  const periodo   = monthStr + ' ' + yearStr;
+  const dp       = (raw[0][0] || '').split('-');
+  const monthStr = dp.length >= 2 ? (MESES[parseInt(dp[1],10)-1] || 'Mes') : 'Mes';
+  const yearStr  = dp[0] || String(new Date().getFullYear());
+  const periodo  = monthStr + ' ' + yearStr;
 
   // --- CÁLCULOS ---
   let totalSecs = 0, jornadas = 0;
@@ -448,104 +449,113 @@ function generarReporteMes(sourceSheetName) {
   const auxCausado = Math.round(NOM_AUX_TRANSPORTE * (totalHrs / NOM_HORAS_LEGALES));
   const deduccion  = NOM_DED_SALUD + NOM_DED_PENSION;
   const neto       = Math.max(0, salCausado + auxCausado - deduccion);
+  const q2         = Math.max(0, neto - NOM_QUINCENA_1);   // lo que queda por pagar
 
   const cop = n => '$' + Math.round(n).toLocaleString('es-CO');
   const hms = s => { const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return m?`${h}h ${m}m`:`${h}h`; };
 
   // --- SHEET ---
-  const rName  = 'Reporte_' + monthStr + '_' + yearStr;
-  let rSheet   = ss.getSheetByName(rName);
+  const rName = 'Reporte_' + monthStr + '_' + yearStr;
+  let rSheet  = ss.getSheetByName(rName);
   if (rSheet) ss.deleteSheet(rSheet);
   rSheet = ss.insertSheet(rName);
 
   // --- PALETA ---
-  const ACC  = '#059669', ACCD = '#047857', ACCL = '#ECFDF5';
-  const W    = '#FFFFFF', BG   = '#F8FAFC', BD   = '#E2E8F0';
-  const TX   = '#0F172A', TX2  = '#64748B', DARK = '#1E293B';
-  const RED  = '#EF4444', YLW  = '#F59E0B';
+  const ACC  = '#059669', ACCD = '#047857', ACCL = '#ECFDF5', ACCT = '#D1FAE5';
+  const W    = '#FFFFFF', BG   = '#F0FDF4', BD   = '#D1FAE5';
+  const TX   = '#0F172A', TX2  = '#64748B', TX3  = '#94A3B8';
+  const DARK = '#1E293B', DGRY = '#334155', LGRY = '#F1F5F9';
+  const RED  = '#EF4444';
 
-  // --- COLUMNAS: A(gutter) B(Fecha) C(Día) D(Entrada) E(Salida) F(Horas) G(Descripción) H(gutter) ---
-  [[1,28],[2,110],[3,55],[4,90],[5,90],[6,75],[7,190],[8,28]]
+  // --- COLUMNAS (sin Descripción) ---
+  // A(gutter) B(Fecha) C(Día) D(Entrada) E(Salida) F(Horas) G(gutter)
+  // Anchos generosos para que no se corten las horas "8:00:00 a.m."
+  [[1,26],[2,116],[3,54],[4,118],[5,118],[6,86],[7,26]]
     .forEach(([c,w]) => rSheet.setColumnWidth(c, w));
 
   // --- ALTURAS DE FILAS ---
-  // R1 spacer | R2 título | R3 subtítulo | R4 spacer | R5 lbl | R6-R8 KPIs | R9 spacer
-  // R10 lbl | R11-R12 liquidación | R13 spacer | R14 lbl | R15 thead | R16+ datos | foot
-  const H = { SP:8, TITLE:52, SUB:26, LBL:22, KLBL:20, KVAL:50, KSUB:18,
-              PLBL:22, PVAL:40, SP2:16, THDR:26, DATA:23, FOOT:22 };
+  const H = { SP:6, TITLE:54, SUB:24, SP2:14, LBL:20, KLBL:18, KVAL:52,
+              KSUB:16, SP3:14, PLBL:20, PHDR:22, PVAL:46, SP4:14,
+              RLBL:20, RHDR:26, RDATA:23, RTOT:26, FOOT:22 };
 
-  rSheet.setRowHeight(1, H.SP);
-  rSheet.setRowHeight(2, H.TITLE);
-  rSheet.setRowHeight(3, H.SUB);
-  rSheet.setRowHeight(4, H.SP2);
-  rSheet.setRowHeight(5, H.LBL);
-  rSheet.setRowHeight(6, H.KLBL);
-  rSheet.setRowHeight(7, H.KVAL);
-  rSheet.setRowHeight(8, H.KSUB);
-  rSheet.setRowHeight(9, H.SP2);
-  rSheet.setRowHeight(10, H.LBL);
-  rSheet.setRowHeight(11, H.PLBL);
+  rSheet.setRowHeight(1,  H.SP);
+  rSheet.setRowHeight(2,  H.TITLE);
+  rSheet.setRowHeight(3,  H.SUB);
+  rSheet.setRowHeight(4,  H.SP2);
+  rSheet.setRowHeight(5,  H.LBL);
+  rSheet.setRowHeight(6,  H.KLBL);
+  rSheet.setRowHeight(7,  H.KVAL);
+  rSheet.setRowHeight(8,  H.KSUB);
+  rSheet.setRowHeight(9,  H.SP3);
+  rSheet.setRowHeight(10, H.PLBL);
+  rSheet.setRowHeight(11, H.PHDR);
   rSheet.setRowHeight(12, H.PVAL);
-  rSheet.setRowHeight(13, H.SP2);
-  rSheet.setRowHeight(14, H.LBL);
-  rSheet.setRowHeight(15, H.THDR);
-  for (let i = 0; i < numRows; i++) rSheet.setRowHeight(16 + i, H.DATA);
-  const lastDR = 15 + numRows;
-  rSheet.setRowHeight(lastDR + 1, H.SP);
-  rSheet.setRowHeight(lastDR + 2, H.FOOT);
+  rSheet.setRowHeight(13, H.SP4);
+  rSheet.setRowHeight(14, H.RLBL);
+  rSheet.setRowHeight(15, H.RHDR);
+  for (let i = 0; i < numRows; i++) rSheet.setRowHeight(16 + i, H.RDATA);
+  const TOTROW = 16 + numRows;
+  rSheet.setRowHeight(TOTROW,   H.RTOT);
+  rSheet.setRowHeight(TOTROW+1, H.SP);
+  rSheet.setRowHeight(TOTROW+2, H.FOOT);
 
   const tz      = Session.getScriptTimeZone();
-  const genDate = Utilities.formatDate(new Date(), tz, "dd/MM/yyyy  HH:mm");
+  const genDate = Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy  HH:mm');
 
   // ── TÍTULO ──
-  rSheet.getRange(2,1,1,8).merge()
+  rSheet.getRange(2,1,1,7).merge()
     .setValue('INFORME MENSUAL — ' + periodo.toUpperCase())
-    .setBackground(ACC).setFontColor(W).setFontSize(15).setFontWeight('bold')
+    .setBackground(ACC).setFontColor(W).setFontSize(16).setFontWeight('bold')
     .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
 
-  rSheet.getRange(3,1,1,8).merge()
+  rSheet.getRange(3,1,1,7).merge()
     .setValue('WorkClock Pro   ·   Período: ' + periodo + '   ·   Generado el ' + genDate)
-    .setBackground(ACCD).setFontColor('#A7F3D0').setFontSize(9)
+    .setBackground(ACCD).setFontColor(ACCT).setFontSize(9)
     .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
 
   // ── SECCIÓN RESUMEN ──
-  rSheet.getRange(5,2,1,6).merge()
-    .setValue('RESUMEN').setFontColor(TX2).setFontSize(8).setFontWeight('bold')
-    .setHorizontalAlignment('left').setVerticalAlignment('bottom').setFontFamily('Arial');
+  // Línea lateral izquierda como acento visual de sección
+  rSheet.getRange(5,2,1,5).merge()
+    .setValue('RESUMEN DEL MES').setFontColor(TX2).setFontSize(8).setFontWeight('bold')
+    .setHorizontalAlignment('left').setVerticalAlignment('middle').setFontFamily('Arial');
+  rSheet.getRange(5,2)
+    .setBorder(false,true,false,false,false,false, ACC, SpreadsheetApp.BorderStyle.SOLID_THICK);
 
+  // Cols B-F (5 cols): B:C=Horas, D=Jornadas, E:F=Cumplimiento
   const kpis = [
-    { c:2, label:'HORAS TRABAJADAS', val:hms(totalSecs), sub:'de '+NOM_HORAS_LEGALES+'h legales' },
-    { c:4, label:'JORNADAS',         val:String(jornadas), sub:'días trabajados' },
-    { c:6, label:'CUMPLIMIENTO',     val:pct.toFixed(1)+'%', sub:(pct>=100?'Meta alcanzada':'en progreso') },
+    { c:2, sp:2, label:'HORAS TRABAJADAS',  val:hms(totalSecs),    sub:'de '+NOM_HORAS_LEGALES+'h legales' },
+    { c:4, sp:1, label:'JORNADAS',          val:String(jornadas),  sub:'días trabajados' },
+    { c:5, sp:2, label:'CUMPLIMIENTO',      val:pct.toFixed(1)+'%',sub:(pct>=100?'✓ Meta alcanzada':'en progreso') },
   ];
   kpis.forEach(k => {
-    rSheet.getRange(6,k.c,1,2).merge()
+    (k.sp>1 ? rSheet.getRange(6,k.c,1,k.sp).merge() : rSheet.getRange(6,k.c))
       .setValue(k.label).setBackground(ACCL).setFontColor(ACCD)
-      .setFontSize(8).setFontWeight('bold')
+      .setFontSize(7).setFontWeight('bold')
       .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial')
       .setBorder(true,true,false,true,false,false, ACC, SpreadsheetApp.BorderStyle.SOLID_THICK);
-    rSheet.getRange(7,k.c,1,2).merge()
+    (k.sp>1 ? rSheet.getRange(7,k.c,1,k.sp).merge() : rSheet.getRange(7,k.c))
       .setValue(k.val).setBackground(W).setFontColor(ACCD)
-      .setFontSize(22).setFontWeight('bold')
+      .setFontSize(20).setFontWeight('bold')
       .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial')
       .setBorder(false,true,false,true,false,false, BD, SpreadsheetApp.BorderStyle.SOLID);
-    rSheet.getRange(8,k.c,1,2).merge()
+    (k.sp>1 ? rSheet.getRange(8,k.c,1,k.sp).merge() : rSheet.getRange(8,k.c))
       .setValue(k.sub).setBackground(W).setFontColor(TX2).setFontSize(8)
       .setHorizontalAlignment('center').setVerticalAlignment('top').setFontFamily('Arial')
       .setBorder(false,true,true,true,false,false, BD, SpreadsheetApp.BorderStyle.SOLID);
   });
 
   // ── SECCIÓN LIQUIDACIÓN ──
-  rSheet.getRange(10,2,1,6).merge()
+  rSheet.getRange(10,2,1,5).merge()
     .setValue('LIQUIDACIÓN').setFontColor(TX2).setFontSize(8).setFontWeight('bold')
-    .setHorizontalAlignment('left').setVerticalAlignment('bottom').setFontFamily('Arial');
+    .setHorizontalAlignment('left').setVerticalAlignment('middle').setFontFamily('Arial');
+  rSheet.getRange(10,2)
+    .setBorder(false,true,false,false,false,false, ACC, SpreadsheetApp.BorderStyle.SOLID_THICK);
 
-  // Headers liquidación: B=SalCausado C=AuxTransp D:E=Deducciones F:G=NETO
+  // Cols B-F: B=Quincena1(pagada) | C:D=Neto Total | E:F=A Pagar Q2
   const payHdrs = [
-    {c:2,sp:1,lbl:'Salario Causado',   bg:DARK, fg:W},
-    {c:3,sp:1,lbl:'Aux. Transporte',   bg:DARK, fg:W},
-    {c:4,sp:2,lbl:'Ded. Salud+Pensión',bg:DARK, fg:W},
-    {c:6,sp:2,lbl:'NETO A PAGAR',      bg:ACC,  fg:W},
+    {c:2,sp:1, lbl:'QUINCENA 1',      bg:DGRY, fg:TX3},   // ya pagada — tono gris discreto
+    {c:3,sp:2, lbl:'NETO TOTAL MES',  bg:DARK, fg:W},
+    {c:5,sp:2, lbl:'A PAGAR  —  Q2',  bg:ACC,  fg:W},
   ];
   payHdrs.forEach(h => {
     (h.sp>1 ? rSheet.getRange(11,h.c,1,h.sp).merge() : rSheet.getRange(11,h.c))
@@ -554,28 +564,28 @@ function generarReporteMes(sourceSheetName) {
       .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
   });
 
-  // Valores liquidación
   const payVals = [
-    {c:2,sp:1,val:cop(salCausado), fg:TX,  bg:BG, sz:13},
-    {c:3,sp:1,val:cop(auxCausado), fg:TX,  bg:BG, sz:13},
-    {c:4,sp:2,val:cop(deduccion),  fg:RED, bg:BG, sz:13},
-    {c:6,sp:2,val:cop(neto),       fg:W,   bg:ACC,sz:15},
+    {c:2,sp:1, val:cop(NOM_QUINCENA_1), fg:TX3,  bg:LGRY, sz:13, bold:false}, // muted
+    {c:3,sp:2, val:cop(neto),           fg:TX,   bg:BG,   sz:14, bold:true},
+    {c:5,sp:2, val:cop(q2),             fg:W,    bg:ACC,  sz:16, bold:true},  // protagonista
   ];
   payVals.forEach(v => {
     (v.sp>1 ? rSheet.getRange(12,v.c,1,v.sp).merge() : rSheet.getRange(12,v.c))
       .setValue(v.val).setBackground(v.bg).setFontColor(v.fg)
-      .setFontSize(v.sz).setFontWeight('bold')
+      .setFontSize(v.sz).setFontWeight(v.bold?'bold':'normal')
       .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
   });
 
   // ── SECCIÓN REGISTROS ──
-  rSheet.getRange(14,2,1,6).merge()
+  rSheet.getRange(14,2,1,5).merge()
     .setValue('REGISTROS DEL MES  (' + numRows + ' entradas)')
     .setFontColor(TX2).setFontSize(8).setFontWeight('bold')
-    .setHorizontalAlignment('left').setVerticalAlignment('bottom').setFontFamily('Arial');
+    .setHorizontalAlignment('left').setVerticalAlignment('middle').setFontFamily('Arial');
+  rSheet.getRange(14,2)
+    .setBorder(false,true,false,false,false,false, ACC, SpreadsheetApp.BorderStyle.SOLID_THICK);
 
-  // Encabezado tabla
-  ['Fecha','Día','Entrada','Salida','Horas','Descripción'].forEach((h,i) => {
+  // Encabezado tabla (5 cols, sin Descripción)
+  ['Fecha','Día','Entrada','Salida','Horas'].forEach((h,i) => {
     rSheet.getRange(15, 2+i)
       .setValue(h).setBackground(DARK).setFontColor(W)
       .setFontSize(9).setFontWeight('bold')
@@ -583,36 +593,43 @@ function generarReporteMes(sourceSheetName) {
       .setVerticalAlignment('middle').setFontFamily('Arial');
   });
 
-  // Datos en lote (rápido)
+  // Datos en lote — 5 columnas, sin Descripción
   if (numRows > 0) {
-    const vals   = raw.map(r => [r[0],r[1],r[2],r[3],r[4],r[5]||'']);
-    const bgMat  = raw.map((_,i) => Array(6).fill(i%2===0?W:BG));
-    const fgMat  = raw.map(() => [TX, TX2, TX, TX, ACCD, TX2]);
-    const bldMat = raw.map(() => ['normal','normal','normal','normal','bold','normal']);
+    const vals   = raw.map(r => [r[0],r[1],r[2],r[3],r[4]]);
+    const bgMat  = raw.map((_,i) => Array(5).fill(i%2===0 ? W : BG));
+    const fgMat  = raw.map(() => [TX, TX2, TX, TX, ACCD]);
+    const bldMat = raw.map(() => ['normal','normal','normal','normal','bold']);
 
-    rSheet.getRange(16,2,numRows,6)
+    rSheet.getRange(16,2,numRows,5)
       .setValues(vals).setFontFamily('Arial').setFontSize(9).setVerticalAlignment('middle')
       .setFontWeights(bldMat);
-    rSheet.getRange(16,2,numRows,6).setBackgrounds(bgMat);
-    rSheet.getRange(16,2,numRows,6).setFontColors(fgMat);
+    rSheet.getRange(16,2,numRows,5).setBackgrounds(bgMat);
+    rSheet.getRange(16,2,numRows,5).setFontColors(fgMat);
     rSheet.getRange(16,2,numRows,4).setHorizontalAlignment('left');
     rSheet.getRange(16,6,numRows,1).setHorizontalAlignment('right');
-    rSheet.getRange(16,7,numRows,1).setHorizontalAlignment('left');
-
-    // Línea divisoria inferior en cada fila de datos
-    rSheet.getRange(16,2,numRows,6)
+    rSheet.getRange(16,2,numRows,5)
       .setBorder(false,false,true,false,false,true, BD, SpreadsheetApp.BorderStyle.SOLID);
   }
 
+  // ── FILA TOTAL ──
+  rSheet.getRange(TOTROW, 2, 1, 4).merge()
+    .setValue('TOTAL  ' + jornadas + ' JORNADAS')
+    .setBackground(DARK).setFontColor(ACCT)
+    .setFontSize(9).setFontWeight('bold')
+    .setHorizontalAlignment('right').setVerticalAlignment('middle').setFontFamily('Arial');
+  rSheet.getRange(TOTROW, 6)
+    .setValue(hms(totalSecs))
+    .setBackground(ACC).setFontColor(W)
+    .setFontSize(10).setFontWeight('bold')
+    .setHorizontalAlignment('right').setVerticalAlignment('middle').setFontFamily('Arial');
+
   // ── FOOTER ──
-  rSheet.getRange(lastDR+2, 1, 1, 8).merge()
-    .setValue('WorkClock Pro   ·   ' + periodo + '   ·   ' + genDate)
+  rSheet.getRange(TOTROW+2, 1, 1, 7).merge()
+    .setValue('WorkClock Pro   ·   ' + periodo + '   ·   Generado el ' + genDate)
     .setBackground(DARK).setFontColor(TX2).setFontSize(8)
     .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
 
-  // Ocultar cuadrícula para aspecto limpio
   try { rSheet.setHiddenGridlines(true); } catch(e) {}
-
   SpreadsheetApp.flush();
   return rSheet;
 }

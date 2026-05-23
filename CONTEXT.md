@@ -74,7 +74,7 @@ Row 1 is the header. Data starts at row 2.
 
 **Deployed URL (hardcoded in app.js):**
 ```
-https://script.google.com/macros/s/AKfycbyvjsZ1I7IC548RxPdLxTvN5oxmuwfLnplxaHs0-dNXJaQ73A3uu9CbaKlukyCrsoZ4/exec
+https://script.google.com/macros/s/AKfycbyxBAcNOH64I1y4CyOFfL-NpWix8iRyYxzt07-NUNYL8BrpXBcAYrypojLcXFUn1zs/exec
 ```
 
 **Script ID (for clasp):** `1E-9vJWmDWR-saHVokvP100rh1REekSy7jgAnEJGP06qbpR12Swg_JvoK`
@@ -333,7 +333,7 @@ Users then need to reload the app once (pull-to-refresh in Safari).
 # https://github.com/SantiagoCM71/WorkClock/actions
 
 # Test the API directly (should return { status: 'ok' })
-curl "https://script.google.com/macros/s/AKfycbyvjsZ1I7IC548RxPdLxTvN5oxmuwfLnplxaHs0-dNXJaQ73A3uu9CbaKlukyCrsoZ4/exec"
+curl "https://script.google.com/macros/s/AKfycbyxBAcNOH64I1y4CyOFfL-NpWix8iRyYxzt07-NUNYL8BrpXBcAYrypojLcXFUn1zs/exec"
 ```
 
 ---
@@ -344,7 +344,7 @@ curl "https://script.google.com/macros/s/AKfycbyvjsZ1I7IC548RxPdLxTvN5oxmuwfLnpl
 |-------|-------|
 | GitHub repo | `https://github.com/SantiagoCM71/WorkClock` |
 | GitHub Pages URL | `https://santiagocm71.github.io/WorkClock/` |
-| Apps Script URL | `https://script.google.com/macros/s/AKfycbyvjsZ1I7IC548RxPdLxTvN5oxmuwfLnplxaHs0-dNXJaQ73A3uu9CbaKlukyCrsoZ4/exec` |
+| Apps Script URL | `https://script.google.com/macros/s/AKfycbyxBAcNOH64I1y4CyOFfL-NpWix8iRyYxzt07-NUNYL8BrpXBcAYrypojLcXFUn1zs/exec` |
 | Apps Script ID | `1E-9vJWmDWR-saHVokvP100rh1REekSy7jgAnEJGP06qbpR12Swg_JvoK` |
 | Google Sheet ID | `12iuJSea50wuVwWGFHfdCRzah7OEMInOstcOM8ByzLMk` |
 | Sheet name | `Hoja 1` |
