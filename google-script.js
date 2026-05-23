@@ -555,7 +555,7 @@ function generarReporteMes(sourceSheetName) {
   const payHdrs = [
     {c:2,sp:1, lbl:'QUINCENA 1',            bg:DGRY, fg:TX3},
     {c:3,sp:2, lbl:'NETO TOTAL MES',        bg:DARK, fg:W},
-    {c:5,sp:2, lbl:'A PAGAR — QUINCENA 2',  bg:ACC,  fg:W},
+    {c:5,sp:2, lbl:'A PAGAR — QUINCENA 2',  bg:'#047857',  fg:W},
   ];
   payHdrs.forEach(h => {
     (h.sp>1 ? rSheet.getRange(11,h.c,1,h.sp).merge() : rSheet.getRange(11,h.c))
@@ -563,10 +563,6 @@ function generarReporteMes(sourceSheetName) {
       .setFontSize(10).setFontWeight('bold')
       .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
   });
-  // Franja #047857 entre NETO y A PAGAR: borde derecho de D11:D12
-  rSheet.getRange(11,4,2,1)
-    .setBorder(false, false, false, true, false, false, '#047857', SpreadsheetApp.BorderStyle.SOLID_THICK);
-
   // Valores como números crudos + setNumberFormat para que Sheets
   // use el separador de miles del locale del spreadsheet (es-CO → punto)
   const payVals = [
