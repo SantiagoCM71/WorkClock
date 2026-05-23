@@ -515,9 +515,9 @@ function generarReporteMes(sourceSheetName) {
     .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
 
   // ── SECCIÓN RESUMEN ──
-  // Línea lateral izquierda como acento visual de sección
+  rSheet.getRange(5,1,1,7).setBackground(ACCT);  // franja de color full-width
   rSheet.getRange(5,2,1,5).merge()
-    .setValue('RESUMEN DEL MES').setFontColor(TX2).setFontSize(8).setFontWeight('bold')
+    .setValue('RESUMEN DEL MES').setFontColor(ACCD).setFontSize(10).setFontWeight('bold')
     .setHorizontalAlignment('left').setVerticalAlignment('middle').setFontFamily('Arial');
   rSheet.getRange(5,2)
     .setBorder(false,true,false,false,false,false, ACC, SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -546,22 +546,23 @@ function generarReporteMes(sourceSheetName) {
   });
 
   // ── SECCIÓN LIQUIDACIÓN ──
+  rSheet.getRange(10,1,1,7).setBackground(ACCT);  // franja de color full-width
   rSheet.getRange(10,2,1,5).merge()
-    .setValue('LIQUIDACIÓN NÓMINA').setFontColor(TX2).setFontSize(8).setFontWeight('bold')
+    .setValue('LIQUIDACIÓN NÓMINA').setFontColor(ACCD).setFontSize(10).setFontWeight('bold')
     .setHorizontalAlignment('left').setVerticalAlignment('middle').setFontFamily('Arial');
   rSheet.getRange(10,2)
     .setBorder(false,true,false,false,false,false, ACC, SpreadsheetApp.BorderStyle.SOLID_THICK);
 
-  // Cols B-F: B=Quincena1(pagada) | C:D=Neto Total | E:F=A Pagar Q2
+  // Cols B-F: B=Quincena1(pagada) | C:D=Neto Total | E:F=A Pagar Quincena 2
   const payHdrs = [
-    {c:2,sp:1, lbl:'QUINCENA 1',      bg:DGRY, fg:TX3},   // ya pagada — tono gris discreto
-    {c:3,sp:2, lbl:'NETO TOTAL MES',  bg:DARK, fg:W},
-    {c:5,sp:2, lbl:'A PAGAR  —  Q2',  bg:ACC,  fg:W},
+    {c:2,sp:1, lbl:'QUINCENA 1',         bg:DGRY, fg:TX3},
+    {c:3,sp:2, lbl:'NETO TOTAL MES',     bg:DARK, fg:W},
+    {c:5,sp:2, lbl:'A PAGAR — QUINCENA 2', bg:ACC, fg:W},
   ];
   payHdrs.forEach(h => {
     (h.sp>1 ? rSheet.getRange(11,h.c,1,h.sp).merge() : rSheet.getRange(11,h.c))
       .setValue(h.lbl).setBackground(h.bg).setFontColor(h.fg)
-      .setFontSize(8).setFontWeight('bold')
+      .setFontSize(10).setFontWeight('bold')
       .setHorizontalAlignment('center').setVerticalAlignment('middle').setFontFamily('Arial');
   });
 
@@ -581,9 +582,10 @@ function generarReporteMes(sourceSheetName) {
   });
 
   // ── SECCIÓN REGISTROS ──
+  rSheet.getRange(14,1,1,7).setBackground(ACCT);  // franja de color full-width
   rSheet.getRange(14,2,1,5).merge()
     .setValue('REGISTROS DEL MES  (' + numRows + ' entradas)')
-    .setFontColor(TX2).setFontSize(8).setFontWeight('bold')
+    .setFontColor(ACCD).setFontSize(10).setFontWeight('bold')
     .setHorizontalAlignment('left').setVerticalAlignment('middle').setFontFamily('Arial');
   rSheet.getRange(14,2)
     .setBorder(false,true,false,false,false,false, ACC, SpreadsheetApp.BorderStyle.SOLID_THICK);
@@ -592,7 +594,7 @@ function generarReporteMes(sourceSheetName) {
   ['Fecha','Día','Entrada','Salida','Horas'].forEach((h,i) => {
     rSheet.getRange(15, 2+i)
       .setValue(h).setBackground(DARK).setFontColor(W)
-      .setFontSize(9).setFontWeight('bold')
+      .setFontSize(10).setFontWeight('bold')
       .setHorizontalAlignment(i===4?'right':'left')
       .setVerticalAlignment('middle').setFontFamily('Arial');
   });
@@ -605,7 +607,7 @@ function generarReporteMes(sourceSheetName) {
     const bldMat = raw.map(() => ['normal','normal','normal','normal','bold']);
 
     rSheet.getRange(16,2,numRows,5)
-      .setValues(vals).setFontFamily('Arial').setFontSize(9).setVerticalAlignment('middle')
+      .setValues(vals).setFontFamily('Arial').setFontSize(10).setVerticalAlignment('middle')
       .setFontWeights(bldMat);
     rSheet.getRange(16,2,numRows,5).setBackgrounds(bgMat);
     rSheet.getRange(16,2,numRows,5).setFontColors(fgMat);
@@ -619,7 +621,7 @@ function generarReporteMes(sourceSheetName) {
   rSheet.getRange(TOTROW, 2, 1, 4).merge()
     .setValue('TOTAL  ' + jornadas + ' JORNADAS')
     .setBackground(DARK).setFontColor(ACCT)
-    .setFontSize(9).setFontWeight('bold')
+    .setFontSize(10).setFontWeight('bold')
     .setHorizontalAlignment('right').setVerticalAlignment('middle').setFontFamily('Arial');
   rSheet.getRange(TOTROW, 6)
     .setValue(hms(totalSecs))
