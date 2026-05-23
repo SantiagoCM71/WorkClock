@@ -183,7 +183,7 @@ body {
 .timer-status {
   font-size: 0.95rem;
   color: var(--text-secondary);
-  margin-bottom: 24px;
+  margin-bottom: 48px;
   font-weight: 500;
   transition: color var(--transition-fast);
 }
