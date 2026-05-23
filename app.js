@@ -357,6 +357,10 @@ function calcNetoCOP(secs) {
 function toggleMoneyMode() {
   if (navigator.vibrate) navigator.vibrate(10);
   isMoneyMode = !isMoneyMode;
+  if (!isMoneyMode) {
+    _lastWeekSecs = -1;
+    _lastMonthSecs = -1;
+  }
   renderStats();
 }
 
