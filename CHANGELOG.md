@@ -2,39 +2,36 @@
 
 ---
 
-## [Current] — 2026-05-23 — Reporte Visual
+## [Current] — 2026-05-23 — Reporte Visual + Bug Fixes
+
+> Backend: v47 · SW cache: workclock-v29
 
 ### Added
-- **Reporte Visual de Mes** — nueva hoja de Google Sheets generada automáticamente con diseño ejecutivo profesional
+- **Reporte Visual de Mes** (`generarReporteMes`) — nueva hoja de Google Sheets generada automáticamente con diseño ejecutivo profesional
   - Header emerald con título "INFORME MENSUAL — MES AÑO" y fecha de generación
-  - 3 KPI cards: Horas Trabajadas, Jornadas, Cumplimiento (borde grueso verde, fuente grande)
-  - Sección LIQUIDACIÓN: Salario Causado · Aux. Transporte · Deducciones · **NETO A PAGAR** (destacado emerald)
-  - Tabla de todos los turnos del mes: Fecha · Día · Entrada · Salida · Horas · Descripción
-  - Filas alternadas, texto muted en columnas secundarias, horas en verde
-  - Footer oscuro con metadata de generación
-  - Cuadrícula oculta (aspecto limpio, listo para PDF/compartir)
+  - 3 KPI cards: Horas Trabajadas, Jornadas, Cumplimiento
+  - Sección **LIQUIDACIÓN NÓMINA**: Quincena 1 (anticipo fijo $930.000) · NETO TOTAL · A PAGAR QUINCENA 2
+  - Tabla de todos los turnos del mes: Fecha · Día · Entrada · Salida · Horas (sin columna Descripción)
+  - Filas alternadas, horas en verde, columnas anchas (sin truncado de texto)
+  - Cuadrícula oculta (`setHiddenGridlines(true)`) — aspecto limpio, listo para PDF/compartir
 - **Botón "Reporte Visual"** en la fila de acciones de la app (entre Agregar Jornada y Nuevo Mes)
 - **`generarReporte` API action** en Apps Script — llamado desde la app o el menú de Sheets
 - **Generación automática al cerrar mes** — `iniciarNuevoMesApp` genera el reporte antes de limpiar
 - Ítem "📋 Generar Reporte Visual" en el menú ⏱️ WorkClock Pro de Google Sheets
-
-### Changed
-- Action row: 2 botones → 3 botones (layout grid 1fr 1fr 1fr); botones más compactos verticales
-- SW cache bumped a v25
-- CONTEXT.md actualizado
-
----
-
-## [2026-05-23] — Bug Fixes
+- **`NOM_QUINCENA_1 = 930_000`** — constante de nómina para anticipo fijo de primera quincena
 
 ### Fixed
+- **COP currency format ($930.00 → $930.000)** — en locale es-CO, Google Sheets interpreta el punto como separador decimal en strings pre-formateados. Solución: pasar número puro a `setValue()` y aplicar `setNumberFormat('"$"#,##0')` — Sheets renderiza el separador de miles correcto (punto) según el locale
 - **exportCSV columna incorrecta** — el CSV usaba `r.rango` (campo eliminado) en lugar de `r.descripcion`; encabezado actualizado a `Fecha,Dia,Entrada,Salida,Horas,Descripcion`; las comillas dentro de la descripción se escapan correctamente (`""`)
 - **"Limpiar Cache" incompleto** — el botón solo borraba `activeStartTime` pero no `wc_cache`; ahora limpia ambas entradas de localStorage y resetea los trackers `_lastWeekSecs/_lastMonthSecs`
 - **XSS en historial** — la descripción del turno se inyectaba como `innerHTML`; ahora se asigna con `textContent` para prevenir ejecución de HTML/scripts
 
 ### Changed
-- Service Worker cache bumped a v24
-- CONTEXT.md actualizado: URL de API (v42), versión de SW, fecha
+- Action row: 2 botones → 3 botones (layout grid `1fr 1fr 1fr`); botones más compactos con icono arriba + texto abajo
+- Sección liquidación: "LIQUIDACIÓN" → "LIQUIDACIÓN NÓMINA"
+- Columna Descripción eliminada del reporte visual (reporte más limpio sin notas internas)
+- SW cache bumped a v29
+- CONTEXT.md y CHANGELOG.md actualizados
 
 ---
 
