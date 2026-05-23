@@ -471,8 +471,8 @@ function generarReporteMes(sourceSheetName) {
 
   // --- COLUMNAS (sin Descripción) ---
   // A(gutter) B(Fecha) C(Día) D(Entrada) E(Salida) F(Horas) G(gutter)
-  // Total ~692px → llena el ancho A4 con márgenes angostos (~700px usable)
-  [[1,14],[2,160],[3,70],[4,156],[5,156],[6,122],[7,14]]
+  // Total ~950px — "Ajustar al tamaño" escala verticalmente, necesitamos más ancho
+  [[1,10],[2,230],[3,100],[4,210],[5,210],[6,180],[7,10]]
     .forEach(([c,w]) => rSheet.setColumnWidth(c, w));
 
   // --- ALTURAS DE FILAS ---
