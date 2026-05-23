@@ -4,12 +4,29 @@
 
 ## [Current] — 2026-05-22
 
+### Added
+- **Dashboard v3** — complete redesign of Google Sheets Dashboard
+  - 5 KPI cards in a row: Horas Trabajadas, Jornadas, Cumplimiento, Salario Causado, Neto Estimado
+  - Progress bar sparkline for monthly hours completion
+  - Hours-per-day column chart sparkline
+  - Liquidación table (left) + Resumen table (right) side by side
+  - Records table with Descripción column (replaces old Rango/Ubicación)
+  - Modern green color scheme (#006a39 primary)
+  - Helper formulas in hidden column L
+  - Columns L-M hidden for clean presentation
+  - Run from Google Sheets menu: WorkClock Pro → Actualizar Dashboard
+
 ### Changed
 - **Removed manual API URL configuration** — URL is now hardcoded, no user setup needed
 - **Auto-connection test on app load** — badge in settings shows "Conectado" / "Sin conexión" automatically
 - Settings modal simplified: removed URL input + "Probar" button
 - Empty state text updated ("Inicia tu primer turno" instead of "Configura la URL")
-- Service Worker cache bumped to v6
+- **Hero screen layout** — timer/button/stats/actions fill viewport exactly, calendar/history below fold
+- **Calendar hours fix** — uses `getDisplayValues()` to parse column E correctly (fixes 516h/1216h bug)
+- **Calendar tooltips** — now float as popups above cells instead of inline text
+- **PWA auto-update** — SW `reg.update()` + auto-reload when new version activates
+- Service Worker cache bumped to v17
+- Backend deployed as v41
 
 ---
 
