@@ -476,9 +476,9 @@ function generarReporteMes(sourceSheetName) {
     .forEach(([c,w]) => rSheet.setColumnWidth(c, w));
 
   // --- ALTURAS DE FILAS ---
-  const H = { SP:6, TITLE:54, SUB:24, SP2:14, LBL:20, KLBL:18, KVAL:52,
-              KSUB:16, SP3:14, PLBL:20, PHDR:22, PVAL:46, SP4:14,
-              RLBL:20, RHDR:26, RDATA:23, RTOT:26, FOOT:22 };
+  const H = { SP:4, TITLE:54, SUB:24, SP2:6, LBL:18, KLBL:18, KVAL:50,
+              KSUB:15, SP3:6, PLBL:18, PHDR:22, PVAL:44, SP4:6,
+              RLBL:18, RHDR:26, RDATA:23, RTOT:26, FOOT:22 };
 
   rSheet.setRowHeight(1,  H.SP);
   rSheet.setRowHeight(2,  H.TITLE);
