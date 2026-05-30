@@ -1432,7 +1432,53 @@ input[type="date"]:focus {
   50% { opacity: 0.35; }
 }
 
-/* 21. PDF PRINT REPORT */
+/* 21. DAY SHIFTS MODAL (long-press calendar) */
+.day-shifts-modal {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.day-shifts-hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+  text-align: center;
+}
+.day-shift-item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.day-shift-item:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+.day-shift-times {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+.day-shift-in { color: var(--system-green); font-weight: 600; }
+.day-shift-sep { color: var(--text-secondary); font-size: 0.8rem; }
+.day-shift-out { color: var(--system-orange); font-weight: 600; }
+.day-shift-hrs {
+  margin-left: auto;
+  color: var(--system-green);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.day-shift-desc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  min-height: 0;
+}
+.day-shift-desc:empty { display: none; }
+
+/* 22. PDF PRINT REPORT */
 #pdfReport { display: none; }
 
 @media print {

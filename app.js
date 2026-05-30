@@ -439,6 +439,21 @@ function renderCalendar(diasMes) {
       cell.addEventListener('click', () => toggleCalTip(cell));
     }
 
+    // Long-press → abrir turnos del día
+    if (hours > 0 || hours === -1) {
+      let lpTimer = null;
+      cell.addEventListener('touchstart', (e) => {
+        lpTimer = setTimeout(() => {
+          lpTimer = null;
+          e.preventDefault();
+          cell.classList.remove('show-tip');
+          openDayShifts(d, month, year);
+        }, 500);
+      }, { passive: false });
+      cell.addEventListener('touchend', () => { if (lpTimer) clearTimeout(lpTimer); });
+      cell.addEventListener('touchmove', () => { if (lpTimer) clearTimeout(lpTimer); });
+    }
+
     grid.appendChild(cell);
   }
 }
@@ -448,6 +463,57 @@ function toggleCalTip(cell) {
   // Close all other tips
   document.querySelectorAll('.cal-day.show-tip').forEach(el => el.classList.remove('show-tip'));
   if (!wasActive) cell.classList.add('show-tip');
+}
+
+// --- LONG-PRESS: TURNOS DEL DÍA ---
+function openDayShifts(day, month, year) {
+  // Construir la fecha en formato dd/mm que usa _lastHistory
+  const dd = String(day).padStart(2, '0');
+  const mm = String(month + 1).padStart(2, '0');
+  const fechaBuscar = dd + '/' + mm;
+
+  // También formato yyyy-mm-dd por si el backend usa ese formato
+  const fechaISO = year + '-' + mm + '-' + dd;
+
+  const turnos = _lastHistory.filter(r =>
+    r.fecha === fechaBuscar || r.fecha === fechaISO
+  );
+
+  if (turnos.length === 0) {
+    showToast('Sin turnos registrados este día');
+    return;
+  }
+
+  const modal = $('dayShiftsModal');
+  const title = $('dayShiftsTitle');
+  const list  = $('dayShiftsList');
+
+  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const dObj = new Date(year, month, day);
+  title.textContent = dias[dObj.getDay()] + ' ' + dd + '/' + mm;
+
+  list.innerHTML = '';
+  turnos.forEach(t => {
+    const item = document.createElement('div');
+    item.className = 'day-shift-item';
+    item.innerHTML = `
+      <div class="day-shift-times">
+        <span class="day-shift-in">${t.entrada}</span>
+        <span class="day-shift-sep">→</span>
+        <span class="day-shift-out">${t.salida || '...'}</span>
+        <span class="day-shift-hrs">${t.horas}</span>
+      </div>
+      <div class="day-shift-desc"></div>
+    `;
+    item.querySelector('.day-shift-desc').textContent = t.descripcion || '';
+    item.addEventListener('click', () => {
+      modal.style.display = 'none';
+      openEditModal(t.rowNumber, t.fecha, t.in24, t.out24);
+    });
+    list.appendChild(item);
+  });
+
+  modal.style.display = 'flex';
 }
 
 // Close calendar tooltips when tapping outside
@@ -1111,6 +1177,10 @@ function setupEventListeners() {
     closeModal(elSettingsModal);
   });
   elSettingsModal.addEventListener('click', e => { if (e.target === elSettingsModal) elBtnCloseSettings.click(); });
+
+  // Day shifts modal (long-press calendar)
+  $('btnCloseDayShifts').addEventListener('click', () => { $('dayShiftsModal').style.display = 'none'; });
+  $('dayShiftsModal').addEventListener('click', e => { if (e.target === $('dayShiftsModal')) $('dayShiftsModal').style.display = 'none'; });
 
   elBtnExportCSV.addEventListener('click', exportCSV);
   elBtnExportPDF.addEventListener('click', exportPDF);
