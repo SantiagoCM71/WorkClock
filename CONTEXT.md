@@ -1,6 +1,6 @@
 # WorkClock Pro — Project Context
 
-> Last updated: 2026-05-23 (v58 backend, SW v40)  
+> Last updated: 2026-05-30 (v58 backend, SW v41)  
 > For any agent (Codex, Antigravity, Claude, etc.) picking up this project.
 
 ---
@@ -24,7 +24,7 @@ Data is stored in a Google Sheet. No server, no database — Apps Script is the 
 | Hosting | GitHub Pages (auto-deploy on push to `main`) |
 | Backend API | Google Apps Script (REST via `doPost`) |
 | Database | Google Sheets |
-| Offline | Service Worker (`sw.js`, cache `workclock-v40`) |
+| Offline | Service Worker (`sw.js`, cache `workclock-v41`) |
 
 ---
 
@@ -35,7 +35,8 @@ WorkClock/
 ├── index.html          # App UI (single page)
 ├── index.css           # Styles (iOS dark glassmorphism theme)
 ├── app.js              # All frontend logic (~800+ lines)
-├── sw.js               # Service Worker (cache: workclock-v40)
+├── sw.js               # Service Worker (cache: workclock-v41)
+├── TODO.md             # Pending tasks & feature backlog
 ├── manifest.json       # PWA manifest
 ├── google-script.js    # Google Apps Script backend (source of truth)
 ├── appsscript.json     # Apps Script config
@@ -128,6 +129,7 @@ historySeq      // deduplication counter for updateHistory
 refreshAbort    // AbortController for refresh calls
 actionAbort     // AbortController for action calls
 finishRowNumber // row number to attach note after finishing shift
+_lastHistory    // cached history array (used by exportPDF)
 ```
 
 ### Critical Flow: `handleAction()`
@@ -162,6 +164,14 @@ elBtnAction.addEventListener('touchend', (e) => {
   actionTouchHandled = true;
 }, { passive: false });
 ```
+
+### PDF Export / Compartir (`exportPDF()`)
+- Genera HTML con resumen (horas semana/mes, neto COP) + tabla de turnos recientes
+- Inyecta en `#pdfReport` (hidden div), llama `window.print()`
+- En iOS Safari: abre el share sheet nativo (WhatsApp, AirDrop, Guardar PDF, etc.)
+- Usa `_lastHistory` (cacheado en `renderHistory()`) para la tabla de turnos
+- CSS: `@media print` oculta todo excepto `#pdfReport`
+- Botón en Configuración → Gestión de Datos: "Exportar PDF / Compartir"
 
 ---
 
@@ -264,7 +274,7 @@ Total ~950px — diseñado para llenar A4 con márgenes angostos en PDF
 ---
 
 ## Service Worker
-- Cache name: `workclock-v40`
+- Cache name: `workclock-v41`
 - Caches: `index.html`, `index.css`, `app.js`, `manifest.json`, `assets/icon.png`
 - API calls to `script.google.com` are **never** cached
 - **To force cache update:** bump `CACHE_NAME` (e.g. v29 → v30) and push — always increment, never reuse old version numbers
