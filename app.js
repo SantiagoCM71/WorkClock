@@ -853,7 +853,18 @@ async function handleGenerarReporte() {
   elBtnGenerarReporte.disabled = true;
   elBtnGenerarReporte.textContent = '...';
 
-  const r = await apiCall('exportarReportePDF');
+  // Llamada directa sin pasar por apiCall para capturar el error real
+  let r = null;
+  try {
+    const res = await fetch(webAppUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'exportarReportePDF' })
+    });
+    r = await res.json();
+  } catch (e) {
+    showToast('Error red: ' + e.message);
+  }
 
   elBtnGenerarReporte.disabled = false;
   elBtnGenerarReporte.innerHTML = `
