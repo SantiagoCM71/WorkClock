@@ -1434,16 +1434,27 @@ input[type="date"]:focus {
   50% { opacity: 0.35; }
 }
 
-/* 21. DAY SHIFTS MODAL (long-press calendar) */
+/* 21. DAY SHIFTS MODAL (tap calendar) */
 .day-shifts-modal {
   max-height: 70vh;
   overflow-y: auto;
 }
-.day-shifts-hint {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin: 0 0 12px;
+.day-info-hours {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--system-green);
   text-align: center;
+  margin: 4px 0 16px;
+  letter-spacing: -0.5px;
+}
+.day-shifts-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 12px 0 0;
+  text-align: center;
+}
+.day-shifts-list {
+  margin-top: 12px;
 }
 .day-shift-item {
   background: rgba(255, 255, 255, 0.04);
@@ -1453,6 +1464,9 @@ input[type="date"]:focus {
   margin-bottom: 8px;
   cursor: pointer;
   transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .day-shift-item:active {
   background: rgba(255, 255, 255, 0.1);
@@ -1467,18 +1481,17 @@ input[type="date"]:focus {
 .day-shift-sep { color: var(--text-secondary); font-size: 0.8rem; }
 .day-shift-out { color: var(--system-orange); font-weight: 600; }
 .day-shift-hrs {
-  margin-left: auto;
   color: var(--system-green);
   font-weight: 700;
   font-size: 0.85rem;
+  margin-left: 8px;
 }
-.day-shift-desc {
+.day-shift-edit {
   font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-top: 4px;
-  min-height: 0;
+  color: var(--system-blue);
+  font-weight: 600;
+  white-space: nowrap;
 }
-.day-shift-desc:empty { display: none; }
 
 /* 22. PDF PRINT REPORT */
 #pdfReport { display: none; }

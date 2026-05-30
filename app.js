@@ -422,8 +422,8 @@ function renderCalendar(diasMes) {
     if (d === today) cls += ' today';
     cell.className = cls;
 
-    // Tap → abrir turnos del día (si tiene horas)
-    if (hours > 0 || hours === -1) {
+    // Tap → abrir info del día (todos los días, no solo los que tienen horas)
+    if (d <= today) {
       cell.addEventListener('click', () => openDayShifts(d, month, year));
     }
 
@@ -431,85 +431,79 @@ function renderCalendar(diasMes) {
   }
 }
 
-// --- TAP CALENDARIO: TURNOS DEL DÍA ---
+// --- TAP CALENDARIO: INFO DEL DÍA ---
 function openDayShifts(day, month, year) {
   const dd = String(day).padStart(2, '0');
   const mm = String(month + 1).padStart(2, '0');
-  const formatos = [
-    dd + '/' + mm,
-    year + '-' + mm + '-' + dd,
-    day + '/' + (month + 1),
-    mm + '/' + dd
-  ];
-
-  const turnos = _lastHistory.filter(r =>
-    formatos.some(f => r.fecha === f)
-  );
-
+  const formatos = [dd + '/' + mm, year + '-' + mm + '-' + dd, day + '/' + (month + 1), mm + '/' + dd];
+  const turnos = _lastHistory.filter(r => formatos.some(f => r.fecha === f));
   const diasMesHours = _lastDiasMes[day] || 0;
 
-  // Si no hay turnos en historial reciente, mostrar info básica
-  if (turnos.length === 0) {
-    if (diasMesHours > 0) {
-      const h = Math.floor(diasMesHours);
-      const m = Math.round((diasMesHours - h) * 60);
-      showToast(`${dd}/${mm}: ${h}h ${m}m`);
-    } else if (diasMesHours === -1) {
-      showToast('Turno en curso...');
-    }
-    return;
-  }
-
-  // Si hay exactamente 1 turno, abrir edición directa
-  if (turnos.length === 1) {
-    openEditModal(turnos[0].rowNumber, turnos[0].fecha, turnos[0].in24, turnos[0].out24);
-    return;
-  }
-
-  // Múltiples turnos: crear modal dinámico para elegir cuál editar
+  // Crear modal dinámico si no existe
   let modal = $('dayShiftsModal');
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'dayShiftsModal';
     modal.className = 'modal-overlay';
-    modal.innerHTML = `
-      <div class="modal-content day-shifts-modal">
-        <div class="modal-header">
-          <h3 id="dayShiftsTitle">Turnos del día</h3>
-          <button class="modal-close-btn" id="btnCloseDayShifts">✕</button>
-        </div>
-        <p class="day-shifts-hint">Toca un turno para editarlo</p>
-        <div id="dayShiftsList"></div>
-      </div>`;
+    modal.innerHTML = '<div class="modal-content day-shifts-modal"><div id="dayShiftsBody"></div></div>';
     document.body.appendChild(modal);
-    $('btnCloseDayShifts').addEventListener('click', () => { modal.style.display = 'none'; });
     modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
   }
 
-  const dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const dObj = new Date(year, month, day);
-  $('dayShiftsTitle').textContent = dias[dObj.getDay()] + ' ' + dd + '/' + mm + '  ·  ' + turnos.length + ' turnos';
+  const diaName = dias[dObj.getDay()];
 
-  const list = $('dayShiftsList');
-  list.innerHTML = '';
-  turnos.forEach(t => {
-    const item = document.createElement('div');
-    item.className = 'day-shift-item';
-    item.innerHTML = `
-      <div class="day-shift-times">
-        <span class="day-shift-in">${t.entrada}</span>
-        <span class="day-shift-sep">→</span>
-        <span class="day-shift-out">${t.salida || '...'}</span>
-        <span class="day-shift-hrs">${t.horas}</span>
-      </div>
-      <div class="day-shift-desc"></div>
-    `;
-    item.querySelector('.day-shift-desc').textContent = t.descripcion || '';
-    item.addEventListener('click', () => {
+  // Calcular horas totales del día
+  let horasStr = '';
+  if (diasMesHours === -1) {
+    horasStr = 'En curso...';
+  } else if (diasMesHours > 0) {
+    const h = Math.floor(diasMesHours);
+    const m = Math.round((diasMesHours - h) * 60);
+    horasStr = h + 'h ' + m + 'm';
+  } else {
+    horasStr = 'Sin registro';
+  }
+
+  const body = $('dayShiftsBody');
+  let html = `
+    <div class="modal-header">
+      <h3>${diaName} ${dd}/${mm}</h3>
+      <button class="modal-close-btn" onclick="document.getElementById('dayShiftsModal').style.display='none'">✕</button>
+    </div>
+    <div class="day-info-hours">${horasStr}</div>`;
+
+  if (turnos.length > 0) {
+    html += '<div class="day-shifts-list">';
+    turnos.forEach((t, i) => {
+      html += `
+        <div class="day-shift-item" data-idx="${i}">
+          <div class="day-shift-times">
+            <span class="day-shift-in">${t.entrada}</span>
+            <span class="day-shift-sep">→</span>
+            <span class="day-shift-out">${t.salida || '...'}</span>
+            <span class="day-shift-hrs">${t.horas}</span>
+          </div>
+          <span class="day-shift-edit">Editar ✎</span>
+        </div>`;
+    });
+    html += '</div>';
+  } else if (diasMesHours > 0) {
+    html += '<p class="day-shifts-hint">Turno fuera del historial reciente</p>';
+  } else {
+    html += '<p class="day-shifts-hint">No trabajaste este día</p>';
+  }
+
+  body.innerHTML = html;
+
+  // Attach edit handlers
+  turnos.forEach((t, i) => {
+    const el = body.querySelector(`[data-idx="${i}"]`);
+    if (el) el.addEventListener('click', () => {
       modal.style.display = 'none';
       openEditModal(t.rowNumber, t.fecha, t.in24, t.out24);
     });
-    list.appendChild(item);
   });
 
   modal.style.display = 'flex';
