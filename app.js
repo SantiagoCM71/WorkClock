@@ -439,19 +439,20 @@ function renderCalendar(diasMes) {
       cell.addEventListener('click', () => toggleCalTip(cell));
     }
 
-    // Long-press → abrir turnos del día
+    // Double-tap → abrir turnos del día
     if (hours > 0 || hours === -1) {
-      let lpTimer = null;
-      cell.addEventListener('touchstart', (e) => {
-        lpTimer = setTimeout(() => {
-          lpTimer = null;
+      let lastTap = 0;
+      cell.addEventListener('click', (e) => {
+        const now = Date.now();
+        if (now - lastTap < 350) {
           e.preventDefault();
           cell.classList.remove('show-tip');
           openDayShifts(d, month, year);
-        }, 500);
-      }, { passive: false });
-      cell.addEventListener('touchend', () => { if (lpTimer) clearTimeout(lpTimer); });
-      cell.addEventListener('touchmove', () => { if (lpTimer) clearTimeout(lpTimer); });
+          lastTap = 0;
+        } else {
+          lastTap = now;
+        }
+      });
     }
 
     grid.appendChild(cell);
@@ -465,22 +466,25 @@ function toggleCalTip(cell) {
   if (!wasActive) cell.classList.add('show-tip');
 }
 
-// --- LONG-PRESS: TURNOS DEL DÍA ---
+// --- DOUBLE-TAP: TURNOS DEL DÍA ---
 function openDayShifts(day, month, year) {
-  // Construir la fecha en formato dd/mm que usa _lastHistory
+  // Construir fecha en todos los formatos posibles
   const dd = String(day).padStart(2, '0');
   const mm = String(month + 1).padStart(2, '0');
-  const fechaBuscar = dd + '/' + mm;
-
-  // También formato yyyy-mm-dd por si el backend usa ese formato
-  const fechaISO = year + '-' + mm + '-' + dd;
+  // Formatos: "30/05", "2026-05-30", "30/5", "05/30"
+  const formatos = [
+    dd + '/' + mm,
+    year + '-' + mm + '-' + dd,
+    day + '/' + (month + 1),
+    mm + '/' + dd
+  ];
 
   const turnos = _lastHistory.filter(r =>
-    r.fecha === fechaBuscar || r.fecha === fechaISO
+    formatos.some(f => r.fecha === f)
   );
 
   if (turnos.length === 0) {
-    showToast('Sin turnos registrados este día');
+    showToast('Este día no está en los últimos 7 turnos');
     return;
   }
 
