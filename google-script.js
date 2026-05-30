@@ -40,6 +40,7 @@ function doPost(e) {
     else if (action === 'eliminarRegistro')       result = eliminarRegistro(params.rowNumber);
     else if (action === 'iniciarNuevoMesApp')     result = iniciarNuevoMesApp();
     else if (action === 'generarReporte')         result = generarReporte();
+    else if (action === 'exportarReportePDF')     result = exportarReportePDF();
     else throw new Error('Acción desconocida: ' + action);
 
     return jsonResponse(result);
@@ -405,6 +406,32 @@ function generarReporte() {
   try {
     const rSheet = generarReporteMes(SHEET_NAME);
     return { success: true, reportName: rSheet.getName() };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/** Genera reporte + exporta como PDF base64 para compartir desde la app */
+function exportarReportePDF() {
+  try {
+    // 1) Generar (o regenerar) la hoja visual
+    const rSheet = generarReporteMes(SHEET_NAME);
+    const nombre = rSheet.getName();
+    SpreadsheetApp.flush(); // asegurar que todos los cambios estén escritos
+
+    // 2) Exportar solo esa hoja como PDF
+    const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ssId  = ss.getId();
+    const gid   = rSheet.getSheetId();
+    const url   = 'https://docs.google.com/spreadsheets/d/' + ssId +
+                  '/export?format=pdf&gid=' + gid +
+                  '&portrait=true&fitw=true&gridlines=false' +
+                  '&top_margin=0.3&bottom_margin=0.3&left_margin=0.3&right_margin=0.3';
+    const token = ScriptApp.getOAuthToken();
+    const blob  = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + token } }).getBlob();
+    const b64   = Utilities.base64Encode(blob.getBytes());
+
+    return { success: true, pdf: b64, nombre: nombre };
   } catch (err) {
     return { success: false, error: err.message };
   }
