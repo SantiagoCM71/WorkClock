@@ -411,16 +411,38 @@ function generarReporte() {
   }
 }
 
-/** Genera reporte + exporta como PDF base64 para compartir desde la app */
+/** Exporta el reporte visual como PDF base64 para compartir desde la app.
+ *  Si la hoja ya existe la reutiliza (rápido). Si no, la genera primero. */
 function exportarReportePDF() {
   try {
-    // 1) Generar (o regenerar) la hoja visual
-    const rSheet = generarReporteMes(SHEET_NAME);
-    const nombre = rSheet.getName();
-    SpreadsheetApp.flush(); // asegurar que todos los cambios estén escritos
+    const ss   = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const src  = ss.getSheetByName(SHEET_NAME);
+    if (!src) throw new Error('No se encontró la hoja: ' + SHEET_NAME);
 
-    // 2) Exportar solo esa hoja como PDF
-    const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+    // Determinar nombre del reporte del mes actual
+    const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
+                   'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const lastRow = getUltimaFila(src);
+    let monthStr, yearStr;
+    if (lastRow > 1) {
+      const dp = src.getRange(2,1).getDisplayValue().split('-');
+      monthStr = dp.length >= 2 ? (MESES[parseInt(dp[1],10)-1] || 'Mes') : 'Mes';
+      yearStr  = dp[0] || String(new Date().getFullYear());
+    } else {
+      const d = new Date();
+      monthStr = MESES[d.getMonth()];
+      yearStr  = String(d.getFullYear());
+    }
+    const rName = 'Reporte_' + monthStr + '_' + yearStr;
+
+    // Reutilizar hoja existente si ya está generada, sino generarla
+    let rSheet = ss.getSheetByName(rName);
+    if (!rSheet) {
+      rSheet = generarReporteMes(SHEET_NAME);
+      SpreadsheetApp.flush();
+    }
+
+    // Exportar como PDF
     const ssId  = ss.getId();
     const gid   = rSheet.getSheetId();
     const url   = 'https://docs.google.com/spreadsheets/d/' + ssId +
@@ -428,10 +450,17 @@ function exportarReportePDF() {
                   '&portrait=true&fitw=true&gridlines=false' +
                   '&top_margin=0.3&bottom_margin=0.3&left_margin=0.3&right_margin=0.3';
     const token = ScriptApp.getOAuthToken();
-    const blob  = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + token } }).getBlob();
-    const b64   = Utilities.base64Encode(blob.getBytes());
+    const resp  = UrlFetchApp.fetch(url, {
+      headers: { Authorization: 'Bearer ' + token },
+      muteHttpExceptions: true
+    });
 
-    return { success: true, pdf: b64, nombre: nombre };
+    if (resp.getResponseCode() !== 200) {
+      throw new Error('PDF export HTTP ' + resp.getResponseCode());
+    }
+
+    const b64 = Utilities.base64Encode(resp.getBlob().getBytes());
+    return { success: true, pdf: b64, nombre: rName };
   } catch (err) {
     return { success: false, error: err.message };
   }
