@@ -446,28 +446,51 @@ function openDayShifts(day, month, year) {
     formatos.some(f => r.fecha === f)
   );
 
-  // Si no hay turnos en el historial reciente, mostrar las horas del calendario
   const diasMesHours = _lastDiasMes[day] || 0;
+
+  // Si no hay turnos en historial reciente, mostrar info básica
   if (turnos.length === 0) {
     if (diasMesHours > 0) {
       const h = Math.floor(diasMesHours);
       const m = Math.round((diasMesHours - h) * 60);
-      showToast(`${dd}/${mm}: ${h}h ${m}m (no en historial reciente)`);
+      showToast(`${dd}/${mm}: ${h}h ${m}m`);
     } else if (diasMesHours === -1) {
       showToast('Turno en curso...');
     }
     return;
   }
 
-  const modal = $('dayShiftsModal');
-  const title = $('dayShiftsTitle');
-  const list  = $('dayShiftsList');
+  // Si hay exactamente 1 turno, abrir edición directa
+  if (turnos.length === 1) {
+    openEditModal(turnos[0].rowNumber, turnos[0].fecha, turnos[0].in24, turnos[0].out24);
+    return;
+  }
+
+  // Múltiples turnos: crear modal dinámico para elegir cuál editar
+  let modal = $('dayShiftsModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'dayShiftsModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content day-shifts-modal">
+        <div class="modal-header">
+          <h3 id="dayShiftsTitle">Turnos del día</h3>
+          <button class="modal-close-btn" id="btnCloseDayShifts">✕</button>
+        </div>
+        <p class="day-shifts-hint">Toca un turno para editarlo</p>
+        <div id="dayShiftsList"></div>
+      </div>`;
+    document.body.appendChild(modal);
+    $('btnCloseDayShifts').addEventListener('click', () => { modal.style.display = 'none'; });
+    modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+  }
 
   const dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const dObj = new Date(year, month, day);
-  const totalH = turnos.length === 1 ? turnos[0].horas : '';
-  title.textContent = dias[dObj.getDay()] + ' ' + dd + '/' + mm + (totalH ? '  ·  ' + totalH : '');
+  $('dayShiftsTitle').textContent = dias[dObj.getDay()] + ' ' + dd + '/' + mm + '  ·  ' + turnos.length + ' turnos';
 
+  const list = $('dayShiftsList');
   list.innerHTML = '';
   turnos.forEach(t => {
     const item = document.createElement('div');
