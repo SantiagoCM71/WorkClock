@@ -422,53 +422,19 @@ function renderCalendar(diasMes) {
     if (d === today) cls += ' today';
     cell.className = cls;
 
-    // Tooltip + double-tap (un solo handler para evitar conflictos)
+    // Tap → abrir turnos del día (si tiene horas)
     if (hours > 0 || hours === -1) {
-      const tip = document.createElement('span');
-      tip.className = 'cal-tooltip';
-      if (hours === -1) {
-        tip.textContent = 'En curso...';
-      } else {
-        const h = Math.floor(hours);
-        const m = Math.round((hours - h) * 60);
-        tip.textContent = `${h}h ${m}m`;
-      }
-      cell.appendChild(tip);
-
-      let lastTap = 0;
-      cell.addEventListener('click', (e) => {
-        const now = Date.now();
-        if (now - lastTap < 400) {
-          // Double-tap → abrir turnos del día
-          e.preventDefault();
-          cell.classList.remove('show-tip');
-          openDayShifts(d, month, year);
-          lastTap = 0;
-        } else {
-          // Single tap → tooltip
-          lastTap = now;
-          toggleCalTip(cell);
-        }
-      });
+      cell.addEventListener('click', () => openDayShifts(d, month, year));
     }
 
     grid.appendChild(cell);
   }
 }
 
-function toggleCalTip(cell) {
-  const wasActive = cell.classList.contains('show-tip');
-  // Close all other tips
-  document.querySelectorAll('.cal-day.show-tip').forEach(el => el.classList.remove('show-tip'));
-  if (!wasActive) cell.classList.add('show-tip');
-}
-
-// --- DOUBLE-TAP: TURNOS DEL DÍA ---
+// --- TAP CALENDARIO: TURNOS DEL DÍA ---
 function openDayShifts(day, month, year) {
-  // Construir fecha en todos los formatos posibles
   const dd = String(day).padStart(2, '0');
   const mm = String(month + 1).padStart(2, '0');
-  // Formatos: "30/05", "2026-05-30", "30/5", "05/30"
   const formatos = [
     dd + '/' + mm,
     year + '-' + mm + '-' + dd,
@@ -480,8 +446,16 @@ function openDayShifts(day, month, year) {
     formatos.some(f => r.fecha === f)
   );
 
+  // Si no hay turnos en el historial reciente, mostrar las horas del calendario
+  const diasMesHours = _lastDiasMes[day] || 0;
   if (turnos.length === 0) {
-    showToast('Este día no está en los últimos 7 turnos');
+    if (diasMesHours > 0) {
+      const h = Math.floor(diasMesHours);
+      const m = Math.round((diasMesHours - h) * 60);
+      showToast(`${dd}/${mm}: ${h}h ${m}m (no en historial reciente)`);
+    } else if (diasMesHours === -1) {
+      showToast('Turno en curso...');
+    }
     return;
   }
 
@@ -489,9 +463,10 @@ function openDayShifts(day, month, year) {
   const title = $('dayShiftsTitle');
   const list  = $('dayShiftsList');
 
-  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const dObj = new Date(year, month, day);
-  title.textContent = dias[dObj.getDay()] + ' ' + dd + '/' + mm;
+  const totalH = turnos.length === 1 ? turnos[0].horas : '';
+  title.textContent = dias[dObj.getDay()] + ' ' + dd + '/' + mm + (totalH ? '  ·  ' + totalH : '');
 
   list.innerHTML = '';
   turnos.forEach(t => {
