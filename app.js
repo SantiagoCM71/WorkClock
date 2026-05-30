@@ -422,35 +422,32 @@ function renderCalendar(diasMes) {
     if (d === today) cls += ' today';
     cell.className = cls;
 
-    // Tooltip (shown on tap via .show-tip class)
-    if (hours > 0) {
-      const tip = document.createElement('span');
-      tip.className = 'cal-tooltip';
-      const h = Math.floor(hours);
-      const m = Math.round((hours - h) * 60);
-      tip.textContent = `${h}h ${m}m`;
-      cell.appendChild(tip);
-      cell.addEventListener('click', () => toggleCalTip(cell));
-    } else if (hours === -1) {
-      const tip = document.createElement('span');
-      tip.className = 'cal-tooltip';
-      tip.textContent = 'En curso...';
-      cell.appendChild(tip);
-      cell.addEventListener('click', () => toggleCalTip(cell));
-    }
-
-    // Double-tap → abrir turnos del día
+    // Tooltip + double-tap (un solo handler para evitar conflictos)
     if (hours > 0 || hours === -1) {
+      const tip = document.createElement('span');
+      tip.className = 'cal-tooltip';
+      if (hours === -1) {
+        tip.textContent = 'En curso...';
+      } else {
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        tip.textContent = `${h}h ${m}m`;
+      }
+      cell.appendChild(tip);
+
       let lastTap = 0;
       cell.addEventListener('click', (e) => {
         const now = Date.now();
-        if (now - lastTap < 350) {
+        if (now - lastTap < 400) {
+          // Double-tap → abrir turnos del día
           e.preventDefault();
           cell.classList.remove('show-tip');
           openDayShifts(d, month, year);
           lastTap = 0;
         } else {
+          // Single tap → tooltip
           lastTap = now;
+          toggleCalTip(cell);
         }
       });
     }
