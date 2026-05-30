@@ -1029,6 +1029,13 @@ textarea {
   gap: 10px;
   margin-top: 4px;
 }
+.btn-export-pdf {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
 
 .app-version-info {
   text-align: center;
@@ -1423,4 +1430,92 @@ input[type="date"]:focus {
 
 @keyframes blinker {
   50% { opacity: 0.35; }
+}
+
+/* 21. PDF PRINT REPORT */
+#pdfReport { display: none; }
+
+@media print {
+  body > * { display: none !important; }
+  #pdfReport {
+    display: block !important;
+    font-family: -apple-system, Helvetica, Arial, sans-serif;
+    color: #111;
+    background: #fff;
+    padding: 28px 32px;
+    max-width: 100%;
+  }
+  .pdf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid #111;
+    padding-bottom: 14px;
+    margin-bottom: 22px;
+  }
+  .pdf-logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .pdf-logo span { color: #16a34a; }
+  .pdf-meta { font-size: 11px; color: #666; text-align: right; line-height: 1.5; }
+  .pdf-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .pdf-stat-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .pdf-stat-label {
+    display: block;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+    margin-bottom: 5px;
+  }
+  .pdf-stat-value {
+    display: block;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .pdf-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #555;
+    margin-bottom: 8px;
+  }
+  .pdf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .pdf-table th {
+    background: #f4f4f4;
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 2px solid #ddd;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #444;
+  }
+  .pdf-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    color: #222;
+  }
+  .pdf-table td.td-horas { font-weight: 700; }
+  .pdf-table tbody tr:nth-child(even) td { background: #fafafa; }
+  .pdf-footer {
+    margin-top: 28px;
+    font-size: 10px;
+    color: #aaa;
+    text-align: center;
+    border-top: 1px solid #eee;
+    padding-top: 12px;
+  }
 }

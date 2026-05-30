@@ -2,47 +2,13 @@
 
 ---
 
-## [Current] — 2026-05-23 — Reporte Visual + Bug Fixes
+## [Current] — 2026-05-30
 
-> Backend: v58 · SW cache: workclock-v40
-
-### Added
-- **Reporte Visual de Mes** (`generarReporteMes`) — nueva hoja de Google Sheets generada automáticamente con diseño ejecutivo profesional
-  - Header emerald con título "INFORME MENSUAL — MES AÑO" y fecha de generación
-  - 3 KPI cards: Horas Trabajadas, Jornadas, Cumplimiento
-  - Sección **LIQUIDACIÓN NÓMINA**: Quincena 1 (anticipo fijo $930.000) · NETO TOTAL · A PAGAR QUINCENA 2
-  - Tabla de todos los turnos del mes: Fecha · Día · Entrada · Salida · Horas (sin columna Descripción)
-  - Filas alternadas, horas en verde, columnas anchas (sin truncado de texto)
-  - Cuadrícula oculta (`setHiddenGridlines(true)`) — aspecto limpio, listo para PDF/compartir
-- **Botón "Reporte Visual"** en la fila de acciones de la app (entre Agregar Jornada y Nuevo Mes)
-- **`generarReporte` API action** en Apps Script — llamado desde la app o el menú de Sheets
-- **Generación automática al cerrar mes** — `iniciarNuevoMesApp` genera el reporte antes de limpiar
-- Ítem "📋 Generar Reporte Visual" en el menú ⏱️ WorkClock Pro de Google Sheets
-- **`NOM_QUINCENA_1 = 930_000`** — constante de nómina para anticipo fijo de primera quincena
-
-### Fixed
-- **COP currency format ($930.00 → $930.000)** — en locale es-CO, Google Sheets interpreta el punto como separador decimal en strings pre-formateados. Solución: pasar número puro a `setValue()` y aplicar `setNumberFormat('"$"#,##0')` — Sheets renderiza el separador de miles correcto (punto) según el locale
-- **exportCSV columna incorrecta** — el CSV usaba `r.rango` (campo eliminado) en lugar de `r.descripcion`; encabezado actualizado a `Fecha,Dia,Entrada,Salida,Horas,Descripcion`; las comillas dentro de la descripción se escapan correctamente (`""`)
-- **"Limpiar Cache" incompleto** — el botón solo borraba `activeStartTime` pero no `wc_cache`; ahora limpia ambas entradas de localStorage y resetea los trackers `_lastWeekSecs/_lastMonthSecs`
-- **XSS en historial** — la descripción del turno se inyectaba como `innerHTML`; ahora se asigna con `textContent` para prevenir ejecución de HTML/scripts
-
-### Changed
-- Action row: 2 botones → 3 botones (layout grid `1fr 1fr 1fr`); botones más compactos con icono arriba + texto abajo
-- Sección liquidación: "LIQUIDACIÓN" → "LIQUIDACIÓN NÓMINA"
-- Columna Descripción eliminada del reporte visual (reporte más limpio sin notas internas)
-- "A PAGAR — Q2" → "A PAGAR — QUINCENA 2"
-- Header "A PAGAR — QUINCENA 2" fondo cambiado a `#047857` (más oscuro que el valor)
-- Columnas del reporte ensanchadas de ~544px a ~950px para llenar A4 con márgenes angostos en PDF
-- Spacer rows reducidos (14px → 6px) para reporte más compacto
-- Font size 9 → 10 en headers de tabla, datos y fila total
-- SW cache bumped a v40
-- CONTEXT.md actualizado con sección completa del reporte visual (layout, celdas merged, lecciones aprendidas)
-
----
-
-## [2026-05-23]
+> SW cache: workclock-v41
 
 ### Added
+- **Exportar PDF / Compartir** — botón en Configuración → Gestión de Datos. Genera un reporte con resumen de horas/salario + tabla de turnos recientes y llama `window.print()`. En iOS Safari abre el menú nativo de compartir (WhatsApp, AirDrop, Guardar PDF, etc.). Sin dependencias externas.
+
 - **4 pro animations:**
   - **Timer digit flip** — cada dígito del cronómetro hace flip vertical (scaleY) al cambiar, como marcador deportivo
   - **Count-up stats** — horas de semana/mes cuentan de 0 al valor real (750ms ease-out cúbico) al cargar datos nuevos
@@ -84,6 +50,29 @@
 - **PWA auto-update** — SW `reg.update()` + auto-reload when new version activates
 - Service Worker cache bumped to v17
 - Backend deployed as v41
+
+---
+
+## [2026-05-23] — Reporte Visual + Bug Fixes
+
+> Backend: v58 · SW cache: workclock-v40
+
+### Added
+- **Reporte Visual de Mes** (`generarReporteMes`) — nueva hoja de Google Sheets generada automáticamente con diseño ejecutivo profesional
+  - Header emerald con título "INFORME MENSUAL — MES AÑO" y fecha de generación
+  - 3 KPI cards: Horas Trabajadas, Jornadas, Cumplimiento
+  - Sección **LIQUIDACIÓN NÓMINA**: Quincena 1 (anticipo fijo $930.000) · NETO TOTAL · A PAGAR QUINCENA 2
+  - Tabla de todos los turnos del mes: Fecha · Día · Entrada · Salida · Horas
+  - Cuadrícula oculta — aspecto limpio, listo para PDF/compartir
+- **Botón "Reporte Visual"** en la fila de acciones de la app
+- **`generarReporte` API action** en Apps Script
+- **`NOM_QUINCENA_1 = 930_000`** — constante de nómina para anticipo fijo
+
+### Fixed
+- COP currency format, exportCSV columna, "Limpiar Cache" incompleto, XSS en historial
+
+### Changed
+- Action row: 2 botones → 3 botones; SW cache v40
 
 ---
 

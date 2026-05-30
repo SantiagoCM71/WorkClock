@@ -14,6 +14,11 @@ Status: `[ ]` pending · `[x]` done · `[~]` in progress · `[!]` blocked
 
 ## Features To Implement
 
+- [ ] **Long-press en calendario para editar turnos del día** — al mantener presionado una celda del calendario (~500ms) abrir modal con los turnos de ese día editables. Requiere nueva función en el backend: `getShiftsForDay(fecha)` que retorne los registros (rowNumber, entrada, salida, descripcion) de esa fecha. Pasos:
+  1. Agregar `getShiftsForDay` en `google-script.js`
+  2. Hacer deploy con `npm run deploy:auto` desde tu PC
+  3. En frontend: detectar long-press con `touchstart` + timer 500ms, cancelar en `touchmove`/`touchend`, abrir modal con los turnos del día
+
 - [ ] **GPS / Location feature** — was deferred. User wants to know if they were at the workplace when clocking in/out. Work coordinates: `lat: 3.5261039, lng: -76.2837987`, radius: 300m. Was removed from backend — needs to be re-added as optional, not blocking.
 
 - [ ] **Edit description on existing shifts** — currently the finish modal saves the note right after a shift ends. But there's no way to edit the description of an older shift from the app. The edit modal only handles Entrada/Salida times.

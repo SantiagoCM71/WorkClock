@@ -17,8 +17,9 @@ let isMoneyMode = false;
 let appData = { weekStr: '--', monthStr: '--', weekSecs: 0, monthSecs: 0 };
 let _prevDigits = ['0','0','0','0','0','0'];
 let _lastDiasMes = {};
-let _lastWeekSecs = -1;
+let _lastWeekSecs  = -1;
 let _lastMonthSecs = -1;
+let _lastHistory   = [];
 const ARC_CIRC = 2 * Math.PI * 108;
 let timerInterval = null;
 let activeStartTime = JSON.parse(localStorage.getItem('activeStartTime')) || null;
@@ -76,6 +77,7 @@ const elBtnSettings      = $('btnSettings');
 const elBtnCloseSettings = $('btnCloseSettings');
 const elConnStatus       = $('connectionStatus');
 const elBtnExportCSV     = $('btnExportCSV');
+const elBtnExportPDF     = $('btnExportPDF');
 const elBtnResetLocal    = $('btnResetLocal');
 
 const elFinishModal    = $('finishModal');
@@ -702,6 +704,7 @@ async function handleAction() {
 
 // --- HISTORY RENDER ---
 function renderHistory(history) {
+  _lastHistory = history || [];
   elHistoryList.innerHTML = '';
 
   if (!history || history.length === 0) {
@@ -879,6 +882,64 @@ async function handleNuevoMes() {
 // testConnection removed — auto-test on load via autoTestConnection()
 
 // --- EXPORT CSV (from current history cache) ---
+function exportPDF() {
+  const now = new Date();
+  const fechaGen = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const horaGen  = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const mes      = now.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+  const filas = _lastHistory.length
+    ? _lastHistory.map(r => `
+        <tr>
+          <td>${r.fecha}${r.dia ? ' ' + r.dia : ''}</td>
+          <td>${r.entrada}</td>
+          <td>${r.salida}</td>
+          <td class="td-horas">${r.horas}</td>
+          <td>${r.descripcion || '—'}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:#aaa;">Sin registros</td></tr>';
+
+  $('pdfReport').innerHTML = `
+    <div class="pdf-header">
+      <div class="pdf-logo">Work<span>Clock</span> Pro</div>
+      <div class="pdf-meta">
+        Reporte de actividad — ${mes}<br>
+        Generado el ${fechaGen} a las ${horaGen}
+      </div>
+    </div>
+    <div class="pdf-stats">
+      <div class="pdf-stat-card">
+        <span class="pdf-stat-label">Esta Semana</span>
+        <span class="pdf-stat-value">${appData.weekStr}</span>
+      </div>
+      <div class="pdf-stat-card">
+        <span class="pdf-stat-label">Este Mes</span>
+        <span class="pdf-stat-value">${appData.monthStr}</span>
+      </div>
+      <div class="pdf-stat-card">
+        <span class="pdf-stat-label">Neto Semana</span>
+        <span class="pdf-stat-value">${calcNetoCOP(appData.weekSecs)}</span>
+      </div>
+      <div class="pdf-stat-card">
+        <span class="pdf-stat-label">Neto Mes</span>
+        <span class="pdf-stat-value">${calcNetoCOP(appData.monthSecs)}</span>
+      </div>
+    </div>
+    <div class="pdf-section-title">Actividad reciente (últimos ${_lastHistory.length} turnos)</div>
+    <table class="pdf-table">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Entrada</th><th>Salida</th><th>Horas</th><th>Descripción</th>
+        </tr>
+      </thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <div class="pdf-footer">WorkClock Pro · ${fechaGen}</div>
+  `;
+
+  window.print();
+}
+
 function exportCSV() {
   showToast('Cargando datos...');
   apiCall('getRecentHistory').then(data => {
@@ -1015,6 +1076,7 @@ function setupEventListeners() {
   elSettingsModal.addEventListener('click', e => { if (e.target === elSettingsModal) elBtnCloseSettings.click(); });
 
   elBtnExportCSV.addEventListener('click', exportCSV);
+  elBtnExportPDF.addEventListener('click', exportPDF);
   elBtnResetLocal.addEventListener('click', () => {
     if (confirm('¿Limpiar cache local? Los datos en Google Sheets no se tocan.')) {
       localStorage.removeItem('activeStartTime');
