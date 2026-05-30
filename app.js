@@ -11,7 +11,7 @@ const NOMINA = {
 };
 
 // --- ESTADO ---
-const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyHdpQERbxikvqnccHH8N39Spv_MI7lLQVpY-cIrpU1bIalXVly-2ege8E8B4qaRjS4/exec';
+const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbxiHbB24gvFXB9k4D6t2CJE4JeKtqb_iYHJC83gAg2c0t-bTM00ABZHSh6Jh69rOLBl/exec';
 let webAppUrl = DEFAULT_API_URL;
 let isMoneyMode = false;
 let appData = { weekStr: '--', monthStr: '--', weekSecs: 0, monthSecs: 0 };
