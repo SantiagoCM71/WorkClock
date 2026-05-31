@@ -1348,3 +1348,425 @@ input[type="date"]:focus {
 @keyframes blinker {
   50% { opacity: 0.35; }
 }
+
+/* 21. DAY SHIFTS MODAL (tap calendar) — Pro design */
+.day-shifts-modal {
+  padding: 0 !important;
+  gap: 0 !important;
+  max-height: 88vh !important;
+  background: linear-gradient(180deg, #1C1C1E 0%, #131316 100%) !important;
+  overflow: hidden !important;
+}
+
+/* Header */
+.day-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 8px;
+  position: relative;
+}
+.day-modal-day {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+.day-modal-date {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  margin-top: 3px;
+  font-weight: 500;
+}
+.day-modal-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.day-modal-close:active {
+  background: rgba(255,255,255,0.15);
+  transform: scale(0.92);
+}
+
+/* Hero — circular progress ring with hours */
+.day-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 24px 24px;
+}
+.day-hero-ring {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  margin: 4px 0 16px;
+}
+.day-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.day-ring-bg {
+  fill: none;
+  stroke: rgba(255,255,255,0.06);
+  stroke-width: 8;
+}
+.day-ring-fg {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.day-hero.status-full   .day-ring-fg { stroke: #FFD60A; filter: drop-shadow(0 0 8px rgba(255, 214, 10, 0.5)); }
+.day-hero.status-partial .day-ring-fg { stroke: #30D158; }
+.day-hero.status-active  .day-ring-fg { stroke: var(--system-orange); }
+.day-hero.status-empty   .day-ring-fg { stroke: rgba(255,255,255,0.12); }
+
+.day-hero-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.day-hero-num {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -2px;
+  line-height: 1;
+}
+.day-hero-unit {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 4px 0 1px;
+  letter-spacing: 0;
+}
+.day-hero-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: -0.5px;
+}
+.day-hero-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 6px;
+}
+.day-hero-status {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 12px;
+  letter-spacing: 0.2px;
+}
+.day-hero.status-full   .day-hero-status { background: rgba(255,214,10,0.13); color: #FFD60A; }
+.day-hero.status-partial .day-hero-status { background: rgba(48,209,88,0.13); color: #30D158; }
+.day-hero.status-active  .day-hero-status { background: rgba(255,149,0,0.15); color: var(--system-orange); }
+.day-hero.status-empty   .day-hero-status { background: rgba(255,255,255,0.06); color: var(--text-tertiary); }
+
+@keyframes dayRingPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Shifts section */
+.day-shifts-section {
+  padding: 4px 20px 20px;
+  max-height: 38vh;
+  overflow-y: auto;
+}
+.day-shifts-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-tertiary);
+  padding: 0 4px 10px;
+}
+.day-shifts-section-count {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  letter-spacing: 0;
+}
+.day-shifts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.day-shift-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.day-shift-item:active {
+  background: rgba(255,255,255,0.09);
+  transform: scale(0.985);
+}
+.day-shift-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(52,199,89,0.13);
+  color: var(--system-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.day-shift-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.day-shift-times-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.day-shift-time-in  { color: var(--system-green); }
+.day-shift-time-out { color: var(--system-orange); }
+.day-shift-arrow {
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.day-shift-hrs-badge {
+  background: rgba(52,199,89,0.13);
+  color: var(--system-green);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 8px;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.day-shift-edit-chevron {
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Empty state */
+/* Section separator */
+.day-section-sep {
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+  margin: 2px 20px;
+}
+
+/* Info card — out-of-history state */
+.day-info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 12px 20px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+}
+.day-info-card-icon {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255,149,0,0.1);
+  color: var(--system-orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.day-info-card-body { flex: 1; min-width: 0; }
+.day-info-card-title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
+}
+.day-info-card-sub {
+  font-size: 0.74rem;
+  color: var(--text-tertiary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Rest / day-off state */
+.day-rest-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 22px 24px 14px;
+  text-align: center;
+}
+.day-rest-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  margin-bottom: 14px;
+}
+.day-rest-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
+}
+.day-rest-sub {
+  font-size: 0.77rem;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* Add-shift CTA button */
+.day-add-shift-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: calc(100% - 40px);
+  margin: 12px 20px 24px;
+  padding: 15px 20px;
+  background: linear-gradient(135deg, rgba(48,209,88,0.15) 0%, rgba(48,209,88,0.09) 100%);
+  border: 1px solid rgba(48,209,88,0.28);
+  border-radius: 14px;
+  color: #30D158;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: -0.1px;
+}
+.day-add-shift-btn:active {
+  background: rgba(48,209,88,0.22);
+  transform: scale(0.97);
+}
+
+/* 22. PDF PRINT REPORT */
+#pdfReport { display: none; }
+
+@media print {
+  body > * { display: none !important; }
+  #pdfReport {
+    display: block !important;
+    font-family: -apple-system, Helvetica, Arial, sans-serif;
+    color: #111;
+    background: #fff;
+    padding: 28px 32px;
+    max-width: 100%;
+  }
+  .pdf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid #111;
+    padding-bottom: 14px;
+    margin-bottom: 22px;
+  }
+  .pdf-logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .pdf-logo span { color: #16a34a; }
+  .pdf-meta { font-size: 11px; color: #666; text-align: right; line-height: 1.5; }
+  .pdf-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .pdf-stat-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .pdf-stat-label {
+    display: block;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+    margin-bottom: 5px;
+  }
+  .pdf-stat-value {
+    display: block;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .pdf-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #555;
+    margin-bottom: 8px;
+  }
+  .pdf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .pdf-table th {
+    background: #f4f4f4;
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 2px solid #ddd;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #444;
+  }
+  .pdf-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    color: #222;
+  }
+  .pdf-table td.td-horas { font-weight: 700; }
+  .pdf-table tbody tr:nth-child(even) td { background: #fafafa; }
+  .pdf-footer {
+    margin-top: 28px;
+    font-size: 10px;
+    color: #aaa;
+    text-align: center;
+    border-top: 1px solid #eee;
+    padding-top: 12px;
+  }
+}
