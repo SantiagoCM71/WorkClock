@@ -577,17 +577,48 @@ function openDayShifts(day, month, year) {
     });
     html += '</div></div>';
   } else if (diasMesHours > 0) {
-    html += `<div class="day-empty-state">
-      <div class="day-empty-icon">📅</div>
-      <p class="day-empty-title">Turno fuera del historial reciente</p>
-      <p class="day-empty-sub">Solo se pueden editar los últimos 7 turnos desde aquí</p>
-    </div>`;
+    html += `
+    <div class="day-section-sep"></div>
+    <div class="day-info-card">
+      <div class="day-info-card-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+          <line x1="12" y1="14" x2="12" y2="16"/><circle cx="12" cy="18" r="0.8" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <div class="day-info-card-body">
+        <p class="day-info-card-title">Fuera del historial reciente</p>
+        <p class="day-info-card-sub">Los últimos 7 turnos son editables. Este quedó más atrás — edítalo directamente en Google Sheets.</p>
+      </div>
+    </div>
+    <div class="day-section-sep"></div>
+    <button class="day-add-shift-btn" type="button" data-fecha="${year}-${mm}-${dd}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Agregar otro turno
+    </button>`;
   } else {
-    html += `<div class="day-empty-state">
-      <div class="day-empty-icon">☕</div>
-      <p class="day-empty-title">Día libre</p>
-      <p class="day-empty-sub">No registraste turnos este día</p>
-    </div>`;
+    html += `
+    <div class="day-section-sep"></div>
+    <div class="day-rest-state">
+      <div class="day-rest-icon-wrap">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </div>
+      <p class="day-rest-title">Día libre</p>
+      <p class="day-rest-sub">Sin turnos registrados</p>
+    </div>
+    <div class="day-section-sep"></div>
+    <button class="day-add-shift-btn" type="button" data-fecha="${year}-${mm}-${dd}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Registrar turno para este día
+    </button>`;
   }
 
   $('dayShiftsBody').innerHTML = html;
