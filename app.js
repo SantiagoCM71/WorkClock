@@ -1206,10 +1206,6 @@ function setupEventListeners() {
   });
   elSettingsModal.addEventListener('click', e => { if (e.target === elSettingsModal) elBtnCloseSettings.click(); });
 
-  // Day shifts modal (long-press calendar)
-  $('btnCloseDayShifts').addEventListener('click', () => { $('dayShiftsModal').style.display = 'none'; });
-  $('dayShiftsModal').addEventListener('click', e => { if (e.target === $('dayShiftsModal')) $('dayShiftsModal').style.display = 'none'; });
-
   elBtnExportCSV.addEventListener('click', exportCSV);
   elBtnExportPDF.addEventListener('click', exportPDF);
   elBtnResetLocal.addEventListener('click', () => {
