@@ -422,9 +422,40 @@ function renderCalendar(diasMes) {
     if (d === today) cls += ' today';
     cell.className = cls;
 
-    // Tap → abrir info del día (todos los días, no solo los que tienen horas)
+    // Tap → abrir info del día (todos los días pasados)
     if (d <= today) {
-      cell.addEventListener('click', () => openDayShifts(d, month, year));
+      const dayNum = d, monthNum = month, yearNum = year;
+      let touchMoved = false;
+      let touchHandled = false;
+
+      cell.addEventListener('touchstart', () => {
+        touchMoved = false;
+        touchHandled = false;
+      }, { passive: true });
+
+      cell.addEventListener('touchmove', () => {
+        touchMoved = true;
+      }, { passive: true });
+
+      cell.addEventListener('touchend', (e) => {
+        if (touchMoved) return;
+        touchHandled = true;
+        e.preventDefault();
+        openDayShifts(dayNum, monthNum, yearNum);
+      }, { passive: false });
+
+      cell.addEventListener('click', () => {
+        if (touchHandled) {
+          touchHandled = false;
+          return;
+        }
+        openDayShifts(dayNum, monthNum, yearNum);
+      });
+
+      // iOS Safari trick: el atributo onclick (aunque vacío) hace que iOS
+      // trate el span como interactivo y dispare eventos confiablemente
+      cell.setAttribute('role', 'button');
+      cell.style.cursor = 'pointer';
     }
 
     grid.appendChild(cell);
