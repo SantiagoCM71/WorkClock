@@ -432,14 +432,17 @@ function renderCalendar(diasMes) {
 }
 
 // --- TAP CALENDARIO: INFO DEL DÍA ---
+let _dayShiftsCurrent = []; // turnos del modal actual (para delegación)
+
 function openDayShifts(day, month, year) {
   const dd = String(day).padStart(2, '0');
   const mm = String(month + 1).padStart(2, '0');
   const formatos = [dd + '/' + mm, year + '-' + mm + '-' + dd, day + '/' + (month + 1), mm + '/' + dd];
   const turnos = _lastHistory.filter(r => formatos.some(f => r.fecha === f));
+  _dayShiftsCurrent = turnos;
   const diasMesHours = _lastDiasMes[day] || 0;
 
-  // Crear modal dinámico si no existe
+  // Crear modal dinámico si no existe (una sola vez)
   let modal = $('dayShiftsModal');
   if (!modal) {
     modal = document.createElement('div');
@@ -447,7 +450,27 @@ function openDayShifts(day, month, year) {
     modal.className = 'modal-overlay';
     modal.innerHTML = '<div class="modal-content day-shifts-modal"><div id="dayShiftsBody"></div></div>';
     document.body.appendChild(modal);
-    modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+
+    // Cerrar al tocar el overlay
+    modal.addEventListener('click', e => {
+      if (e.target === modal) modal.style.display = 'none';
+    });
+
+    // Delegación: cualquier click en .day-shift-item o .modal-close-btn dentro del body
+    $('dayShiftsBody').addEventListener('click', e => {
+      if (e.target.closest('.modal-close-btn')) {
+        modal.style.display = 'none';
+        return;
+      }
+      const item = e.target.closest('.day-shift-item');
+      if (item) {
+        const idx = parseInt(item.dataset.idx, 10);
+        const t = _dayShiftsCurrent[idx];
+        if (!t) return;
+        modal.style.display = 'none';
+        openEditModal(t.rowNumber, t.fecha, t.in24, t.out24);
+      }
+    });
   }
 
   const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -455,7 +478,7 @@ function openDayShifts(day, month, year) {
   const diaName = dias[dObj.getDay()];
 
   // Calcular horas totales del día
-  let horasStr = '';
+  let horasStr;
   if (diasMesHours === -1) {
     horasStr = 'En curso...';
   } else if (diasMesHours > 0) {
@@ -466,11 +489,10 @@ function openDayShifts(day, month, year) {
     horasStr = 'Sin registro';
   }
 
-  const body = $('dayShiftsBody');
   let html = `
     <div class="modal-header">
       <h3>${diaName} ${dd}/${mm}</h3>
-      <button class="modal-close-btn" onclick="document.getElementById('dayShiftsModal').style.display='none'">✕</button>
+      <button class="modal-close-btn" type="button" aria-label="Cerrar">✕</button>
     </div>
     <div class="day-info-hours">${horasStr}</div>`;
 
@@ -478,7 +500,7 @@ function openDayShifts(day, month, year) {
     html += '<div class="day-shifts-list">';
     turnos.forEach((t, i) => {
       html += `
-        <div class="day-shift-item" data-idx="${i}">
+        <div class="day-shift-item" role="button" tabindex="0" data-idx="${i}">
           <div class="day-shift-times">
             <span class="day-shift-in">${t.entrada}</span>
             <span class="day-shift-sep">→</span>
@@ -495,17 +517,7 @@ function openDayShifts(day, month, year) {
     html += '<p class="day-shifts-hint">No trabajaste este día</p>';
   }
 
-  body.innerHTML = html;
-
-  // Attach edit handlers
-  turnos.forEach((t, i) => {
-    const el = body.querySelector(`[data-idx="${i}"]`);
-    if (el) el.addEventListener('click', () => {
-      modal.style.display = 'none';
-      openEditModal(t.rowNumber, t.fecha, t.in24, t.out24);
-    });
-  });
-
+  $('dayShiftsBody').innerHTML = html;
   modal.style.display = 'flex';
 }
 
