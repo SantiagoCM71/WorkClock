@@ -1440,7 +1440,8 @@ input[type="date"]:focus {
   gap: 0 !important;
   max-height: 88vh !important;
   background: linear-gradient(180deg, #1C1C1E 0%, #131316 100%) !important;
-  overflow: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Header */
@@ -1509,7 +1510,7 @@ input[type="date"]:focus {
 .day-ring-fg {
   fill: none;
   stroke-width: 8;
-  stroke-linecap: round;
+  stroke-linecap: butt;
   transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .day-hero.status-full   .day-ring-fg { stroke: #FFD60A; filter: drop-shadow(0 0 8px rgba(255, 214, 10, 0.5)); }
@@ -1553,6 +1554,7 @@ input[type="date"]:focus {
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-top: 6px;
+  order: 1;
 }
 .day-hero-status {
   font-size: 0.78rem;

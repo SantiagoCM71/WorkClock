@@ -464,10 +464,17 @@ function openDayShifts(day, month, year) {
       if (e.target === modal) closeIt();
     });
 
-    // Delegación: cualquier click en .day-shift-item o .modal-close-btn dentro del body
+    // Delegación: .modal-close-btn, .day-add-shift-btn, .day-shift-item
     $('dayShiftsBody').addEventListener('click', e => {
       if (e.target.closest('.modal-close-btn')) {
         closeIt();
+        return;
+      }
+      const addBtn = e.target.closest('.day-add-shift-btn');
+      if (addBtn) {
+        closeIt();
+        openManualModal();
+        if (addBtn.dataset.fecha) elManDate.value = addBtn.dataset.fecha;
         return;
       }
       const item = e.target.closest('.day-shift-item');
@@ -541,10 +548,10 @@ function openDayShifts(day, month, year) {
         </svg>
         <div class="day-hero-content">
           ${valueHTML}
-          <div class="day-hero-label">${isActive ? '' : 'de 8h jornada'}</div>
         </div>
       </div>
       <div class="day-hero-status">${statusLabel}</div>
+      ${(!isActive && horasNum > 0) ? `<div class="day-hero-label">de 8h jornada</div>` : ''}
     </div>`;
 
   if (turnos.length > 0) {
