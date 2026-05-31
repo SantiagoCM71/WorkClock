@@ -424,37 +424,9 @@ function renderCalendar(diasMes) {
 
     // Tap → abrir info del día (todos los días pasados)
     if (d <= today) {
-      const dayNum = d, monthNum = month, yearNum = year;
-      let touchMoved = false;
-      let touchHandled = false;
-
-      cell.addEventListener('touchstart', () => {
-        touchMoved = false;
-        touchHandled = false;
-      }, { passive: true });
-
-      cell.addEventListener('touchmove', () => {
-        touchMoved = true;
-      }, { passive: true });
-
-      cell.addEventListener('touchend', (e) => {
-        if (touchMoved) return;
-        touchHandled = true;
-        e.preventDefault();
-        openDayShifts(dayNum, monthNum, yearNum);
-      }, { passive: false });
-
-      cell.addEventListener('click', () => {
-        if (touchHandled) {
-          touchHandled = false;
-          return;
-        }
-        openDayShifts(dayNum, monthNum, yearNum);
-      });
-
-      // iOS Safari trick: el atributo onclick (aunque vacío) hace que iOS
-      // trate el span como interactivo y dispare eventos confiablemente
-      cell.setAttribute('role', 'button');
+      cell.dataset.day = d;
+      cell.dataset.month = month;
+      cell.dataset.year = year;
       cell.style.cursor = 'pointer';
     }
 
@@ -1196,6 +1168,20 @@ function setupEventListeners() {
   }, { passive: false });
 
   elStatsGrid.addEventListener('click', toggleMoneyMode);
+
+  // Calendario — delegación global, sobrevive re-renders
+  const calGrid = $('calendarGrid');
+  if (calGrid) {
+    calGrid.addEventListener('click', (e) => {
+      const cell = e.target.closest('.cal-day');
+      if (!cell || cell.classList.contains('empty') || cell.classList.contains('future')) return;
+      if (!cell.dataset.day) return;
+      const day   = parseInt(cell.dataset.day, 10);
+      const month = parseInt(cell.dataset.month, 10);
+      const year  = parseInt(cell.dataset.year, 10);
+      openDayShifts(day, month, year);
+    });
+  }
 
   elBtnAddManual.addEventListener('click', openManualModal);
   elBtnGenerarReporte.addEventListener('click', handleGenerarReporte);
