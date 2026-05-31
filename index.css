@@ -1434,63 +1434,259 @@ input[type="date"]:focus {
   50% { opacity: 0.35; }
 }
 
-/* 21. DAY SHIFTS MODAL (tap calendar) */
+/* 21. DAY SHIFTS MODAL (tap calendar) — Pro design */
 .day-shifts-modal {
-  max-height: 70vh;
-  overflow-y: auto;
+  padding: 0 !important;
+  gap: 0 !important;
+  max-height: 88vh !important;
+  background: linear-gradient(180deg, #1C1C1E 0%, #131316 100%) !important;
+  overflow: hidden !important;
 }
-.day-info-hours {
-  font-size: 1.8rem;
+
+/* Header */
+.day-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 8px;
+  position: relative;
+}
+.day-modal-day {
+  font-size: 1.35rem;
   font-weight: 800;
-  color: var(--system-green);
-  text-align: center;
+  color: #fff;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+.day-modal-date {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  margin-top: 3px;
+  font-weight: 500;
+}
+.day-modal-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.day-modal-close:active {
+  background: rgba(255,255,255,0.15);
+  transform: scale(0.92);
+}
+
+/* Hero — circular progress ring with hours */
+.day-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 24px 24px;
+}
+.day-hero-ring {
+  position: relative;
+  width: 160px;
+  height: 160px;
   margin: 4px 0 16px;
+}
+.day-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.day-ring-bg {
+  fill: none;
+  stroke: rgba(255,255,255,0.06);
+  stroke-width: 8;
+}
+.day-ring-fg {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.day-hero.status-full   .day-ring-fg { stroke: #FFD60A; filter: drop-shadow(0 0 8px rgba(255, 214, 10, 0.5)); }
+.day-hero.status-partial .day-ring-fg { stroke: #30D158; }
+.day-hero.status-active  .day-ring-fg { stroke: var(--system-orange); }
+.day-hero.status-empty   .day-ring-fg { stroke: rgba(255,255,255,0.12); }
+
+.day-hero-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.day-hero-num {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -2px;
+  line-height: 1;
+}
+.day-hero-unit {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 4px 0 1px;
+  letter-spacing: 0;
+}
+.day-hero-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-secondary);
   letter-spacing: -0.5px;
 }
-.day-shifts-hint {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin: 12px 0 0;
-  text-align: center;
+.day-hero-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 6px;
 }
-.day-shifts-list {
-  margin-top: 12px;
+.day-hero-status {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 12px;
+  letter-spacing: 0.2px;
 }
-.day-shift-item {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
+.day-hero.status-full   .day-hero-status { background: rgba(255,214,10,0.13); color: #FFD60A; }
+.day-hero.status-partial .day-hero-status { background: rgba(48,209,88,0.13); color: #30D158; }
+.day-hero.status-active  .day-hero-status { background: rgba(255,149,0,0.15); color: var(--system-orange); }
+.day-hero.status-empty   .day-hero-status { background: rgba(255,255,255,0.06); color: var(--text-tertiary); }
+
+@keyframes dayRingPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Shifts section */
+.day-shifts-section {
+  padding: 4px 20px 20px;
+  max-height: 38vh;
+  overflow-y: auto;
+}
+.day-shifts-section-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-tertiary);
+  padding: 0 4px 10px;
 }
-.day-shift-item:active {
-  background: rgba(255, 255, 255, 0.1);
+.day-shifts-section-count {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  letter-spacing: 0;
 }
-.day-shift-times {
+.day-shifts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.day-shift-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.day-shift-in { color: var(--system-green); font-weight: 600; }
-.day-shift-sep { color: var(--text-secondary); font-size: 0.8rem; }
-.day-shift-out { color: var(--system-orange); font-weight: 600; }
-.day-shift-hrs {
+.day-shift-item:active {
+  background: rgba(255,255,255,0.09);
+  transform: scale(0.985);
+}
+.day-shift-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(52,199,89,0.13);
   color: var(--system-green);
-  font-weight: 700;
-  font-size: 0.85rem;
-  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
-.day-shift-edit {
-  font-size: 0.75rem;
-  color: var(--system-blue);
+.day-shift-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.day-shift-times-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.day-shift-time-in  { color: var(--system-green); }
+.day-shift-time-out { color: var(--system-orange); }
+.day-shift-arrow {
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.day-shift-hrs-badge {
+  background: rgba(52,199,89,0.13);
+  color: var(--system-green);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 8px;
+  letter-spacing: 0;
   white-space: nowrap;
+}
+.day-shift-edit-chevron {
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Empty state */
+.day-empty-state {
+  padding: 8px 24px 32px;
+  text-align: center;
+}
+.day-empty-icon {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+  opacity: 0.75;
+}
+.day-empty-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 4px;
+}
+.day-empty-sub {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin: 0;
+  line-height: 1.4;
 }
 
 /* 22. PDF PRINT REPORT */

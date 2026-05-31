@@ -481,48 +481,113 @@ function openDayShifts(day, month, year) {
     });
   }
 
-  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const dias  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const dObj = new Date(year, month, day);
   const diaName = dias[dObj.getDay()];
+  const fechaLarga = `${day} de ${meses[month]}, ${year}`;
 
-  // Calcular horas totales del día
-  let horasStr;
+  // Calcular horas totales del día y porcentaje de jornada (8h)
+  let horasNum = 0;
+  let statusLabel = '';
+  let statusClass = '';
+  let valueHTML = '';
+  let isActive = false;
+
   if (diasMesHours === -1) {
-    horasStr = 'En curso...';
+    isActive = true;
+    statusLabel = 'Turno en curso';
+    statusClass = 'status-active';
+    valueHTML = `<span class="day-hero-value">En curso</span>`;
   } else if (diasMesHours > 0) {
-    const h = Math.floor(diasMesHours);
-    const m = Math.round((diasMesHours - h) * 60);
-    horasStr = h + 'h ' + m + 'm';
+    horasNum = diasMesHours;
+    const h = Math.floor(horasNum);
+    const m = Math.round((horasNum - h) * 60);
+    const fullJornada = horasNum >= 8;
+    statusLabel = fullJornada ? 'Jornada completa ✓' : 'Jornada parcial';
+    statusClass = fullJornada ? 'status-full' : 'status-partial';
+    valueHTML = `
+      <span class="day-hero-num">${h}</span><span class="day-hero-unit">h</span>
+      <span class="day-hero-num">${m.toString().padStart(2,'0')}</span><span class="day-hero-unit">m</span>`;
   } else {
-    horasStr = 'Sin registro';
+    statusLabel = 'Sin actividad';
+    statusClass = 'status-empty';
+    valueHTML = `<span class="day-hero-value">—</span>`;
   }
 
+  const pct = Math.min(100, Math.round((horasNum / 8) * 100));
+  // SVG progress ring (r=54, c≈339.29)
+  const C = 339.29;
+  const dashOffset = C - (C * pct / 100);
+
   let html = `
-    <div class="modal-header">
-      <h3>${diaName} ${dd}/${mm}</h3>
-      <button class="modal-close-btn" type="button" aria-label="Cerrar">✕</button>
+    <div class="day-modal-header">
+      <div class="day-modal-head-text">
+        <div class="day-modal-day">${diaName}</div>
+        <div class="day-modal-date">${fechaLarga}</div>
+      </div>
+      <button class="modal-close-btn day-modal-close" type="button" aria-label="Cerrar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
     </div>
-    <div class="day-info-hours">${horasStr}</div>`;
+
+    <div class="day-hero ${statusClass}">
+      <div class="day-hero-ring">
+        <svg viewBox="0 0 120 120" class="day-ring-svg">
+          <circle cx="60" cy="60" r="54" class="day-ring-bg"/>
+          <circle cx="60" cy="60" r="54" class="day-ring-fg"
+                  stroke-dasharray="${C}" stroke-dashoffset="${dashOffset}"
+                  style="${isActive ? 'animation: dayRingPulse 2s ease-in-out infinite;' : ''}"/>
+        </svg>
+        <div class="day-hero-content">
+          ${valueHTML}
+          <div class="day-hero-label">${isActive ? '' : 'de 8h jornada'}</div>
+        </div>
+      </div>
+      <div class="day-hero-status">${statusLabel}</div>
+    </div>`;
 
   if (turnos.length > 0) {
-    html += '<div class="day-shifts-list">';
+    html += `<div class="day-shifts-section">
+      <div class="day-shifts-section-title">
+        <span>${turnos.length === 1 ? 'TURNO' : 'TURNOS'}</span>
+        <span class="day-shifts-section-count">${turnos.length}</span>
+      </div>
+      <div class="day-shifts-list">`;
     turnos.forEach((t, i) => {
       html += `
         <div class="day-shift-item" role="button" tabindex="0" data-idx="${i}">
-          <div class="day-shift-times">
-            <span class="day-shift-in">${t.entrada}</span>
-            <span class="day-shift-sep">→</span>
-            <span class="day-shift-out">${t.salida || '...'}</span>
-            <span class="day-shift-hrs">${t.horas}</span>
+          <div class="day-shift-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
           </div>
-          <span class="day-shift-edit">Editar ✎</span>
+          <div class="day-shift-body">
+            <div class="day-shift-times-row">
+              <span class="day-shift-time-in">${t.entrada}</span>
+              <span class="day-shift-arrow">→</span>
+              <span class="day-shift-time-out">${t.salida || '··:··'}</span>
+            </div>
+            <div class="day-shift-hrs-badge">${t.horas}</div>
+          </div>
+          <div class="day-shift-edit-chevron" aria-label="Editar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
         </div>`;
     });
-    html += '</div>';
+    html += '</div></div>';
   } else if (diasMesHours > 0) {
-    html += '<p class="day-shifts-hint">Turno fuera del historial reciente</p>';
+    html += `<div class="day-empty-state">
+      <div class="day-empty-icon">📅</div>
+      <p class="day-empty-title">Turno fuera del historial reciente</p>
+      <p class="day-empty-sub">Solo se pueden editar los últimos 7 turnos desde aquí</p>
+    </div>`;
   } else {
-    html += '<p class="day-shifts-hint">No trabajaste este día</p>';
+    html += `<div class="day-empty-state">
+      <div class="day-empty-icon">☕</div>
+      <p class="day-empty-title">Día libre</p>
+      <p class="day-empty-sub">No registraste turnos este día</p>
+    </div>`;
   }
 
   $('dayShiftsBody').innerHTML = html;
