@@ -479,18 +479,23 @@ function openDayShifts(day, month, year) {
     modal = document.createElement('div');
     modal.id = 'dayShiftsModal';
     modal.className = 'modal-overlay';
-    modal.innerHTML = '<div class="modal-content day-shifts-modal"><div id="dayShiftsBody"></div></div>';
+    modal.innerHTML = '<div class="ios-modal day-shifts-modal"><div class="modal-handle"></div><div id="dayShiftsBody"></div></div>';
     document.body.appendChild(modal);
 
-    // Cerrar al tocar el overlay
+    const closeIt = () => {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    };
+
+    // Cerrar al tocar el overlay (fuera del contenido)
     modal.addEventListener('click', e => {
-      if (e.target === modal) modal.style.display = 'none';
+      if (e.target === modal) closeIt();
     });
 
     // Delegación: cualquier click en .day-shift-item o .modal-close-btn dentro del body
     $('dayShiftsBody').addEventListener('click', e => {
       if (e.target.closest('.modal-close-btn')) {
-        modal.style.display = 'none';
+        closeIt();
         return;
       }
       const item = e.target.closest('.day-shift-item');
@@ -498,7 +503,7 @@ function openDayShifts(day, month, year) {
         const idx = parseInt(item.dataset.idx, 10);
         const t = _dayShiftsCurrent[idx];
         if (!t) return;
-        modal.style.display = 'none';
+        closeIt();
         openEditModal(t.rowNumber, t.fecha, t.in24, t.out24);
       }
     });
@@ -549,7 +554,8 @@ function openDayShifts(day, month, year) {
   }
 
   $('dayShiftsBody').innerHTML = html;
-  modal.style.display = 'flex';
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
 }
 
 // Close calendar tooltips when tapping outside
